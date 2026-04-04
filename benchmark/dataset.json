@@ -1,0 +1,189 @@
+[
+  {
+    "id": "gen_user_background_user_background",
+    "source": "generated_from_claude_code_prompt",
+    "scenario_id": "user_background",
+    "quality_label": "高质量",
+    "expected_action": "keep",
+    "memory_type": "user",
+    "age_days": 3,
+    "content": "---\nname: User background and expertise\ndescription: User has 7-8 years Python experience, does ML research focused on model interpretability\ntype: user\n---\n\nUser is an experienced Python developer with 7-8 years of usage.\n\nCurrently working on machine learning research, specifically focused on model interpretability.\n\nPrefers high-level design explanations over basic syntax explanations.\n\n**Why:** Knowing the user's expertise level helps tailor the depth and style of technical explanations.\n**How to apply:** When explaining Python code, focus on design patterns and architecture rather than basic syntax. When discussing ML topics, connect to model interpretability concepts.",
+    "human_scores": {
+      "importance": null,
+      "recency": null,
+      "credibility": null,
+      "accuracy": null
+    },
+    "notes": "自动生成，场景：高质量，预期动作：keep"
+  },
+  {
+    "id": "gen_feedback_response_style_writing_ending_preference",
+    "source": "generated_from_claude_code_prompt",
+    "scenario_id": "feedback_response_style",
+    "quality_label": "高质量",
+    "expected_action": "keep",
+    "memory_type": "feedback",
+    "age_days": 5,
+    "content": "---\nname: User preference: no redundant ending summary\ndescription: User doesn't want repetition at the end of summaries\ntype: feedback\n---\n\n不要在结尾重复总结内容或再写一遍要点，直接结束即可。\n\n**Why:** 用户刚看完正文内容，不需要再被重复提醒重点，重复总结没有额外价值。\n\n**How to apply:** 写完总结或任何文档后，直接在最后一句自然结束，不要加\"综上所述\"、\"总之\"类的总结段落来重复要点。",
+    "human_scores": {
+      "importance": null,
+      "recency": null,
+      "credibility": null,
+      "accuracy": null
+    },
+    "notes": "自动生成，场景：高质量，预期动作：keep"
+  },
+  {
+    "id": "gen_feedback_communication_preference_user_communication_preference",
+    "source": "generated_from_claude_code_prompt",
+    "scenario_id": "feedback_communication_preference",
+    "quality_label": "高质量",
+    "expected_action": "keep",
+    "memory_type": "feedback",
+    "age_days": 7,
+    "content": "---\nname: User communication preference\ndescription: User prefers conclusion-first communication style\ntype: feedback\n---\n\nUser prefers receiving answers in a \"conclusion first, then explanation\" structure.\n\n**Why:** This reading style is more efficient for the user - they find it easier to understand and process information when the main point comes first.\n\n**How to apply:** Always start responses with a clear conclusion or summary, then expand with detailed explanations. Avoid lengthy background before reaching the point.",
+    "human_scores": {
+      "importance": null,
+      "recency": null,
+      "credibility": null,
+      "accuracy": null
+    },
+    "notes": "自动生成，场景：高质量，预期动作：keep"
+  },
+  {
+    "id": "gen_stale_project_deadline_ecommerce_project_overview",
+    "source": "generated_from_claude_code_prompt",
+    "scenario_id": "stale_project_deadline",
+    "quality_label": "过时",
+    "expected_action": "delete",
+    "memory_type": "project",
+    "age_days": 100,
+    "content": "---\nname: E-commerce数据分析项目概况\ndescription: 零售连锁客户库存周转率分析，三月底交付\ntype: project\n---\n\n正在进行电商数据分析项目，客户为零售连锁企业。\n\n主要分析目标：库存周转率\n\n**Why:** 明确项目背景有助于在后续交互中保持上下文一致性，确保建议符合项目需求\n\n**How to apply:** 后续建议需考虑零售行业特性、库存分析需求，并注意三月底的交付截止时间",
+    "human_scores": {
+      "importance": null,
+      "recency": null,
+      "credibility": null,
+      "accuracy": null
+    },
+    "notes": "自动生成，场景：过时，预期动作：delete"
+  },
+  {
+    "id": "gen_stale_project_deadline_technical_environment",
+    "source": "generated_from_claude_code_prompt",
+    "scenario_id": "stale_project_deadline",
+    "quality_label": "过时",
+    "expected_action": "delete",
+    "memory_type": "project",
+    "age_days": 100,
+    "content": "---\nname: 技术栈和数据规模\ndescription: 使用Pandas处理两年销售记录\ntype: project\n---\n\n数据处理工具：Pandas\n\n数据规模：约两年销售记录\n\n**Why:** 了解数据处理工具和数据量有助于在建议中考虑合适的性能优化方案\n\n**How to apply:** 在进行数据处理建议时考虑两年数据的性能优化需求",
+    "human_scores": {
+      "importance": null,
+      "recency": null,
+      "credibility": null,
+      "accuracy": null
+    },
+    "notes": "自动生成，场景：过时，预期动作：delete"
+  },
+  {
+    "id": "gen_stale_project_status_current_development_progress",
+    "source": "generated_from_claude_code_prompt",
+    "scenario_id": "stale_project_status",
+    "quality_label": "过时",
+    "expected_action": "delete",
+    "memory_type": "project",
+    "age_days": 95,
+    "content": "---\nname: Current development progress\ndescription: Step 2 memory reading development timeline and next phase\ntype: project\n---\n\nUser is currently developing Step 2 (memory file reading module). Expected completion: this week. Next phase: scoring engine starting next week. Main challenge: handling frontmatter format edge cases.\n\n**Why:** This establishes the project timeline and priorities.\n\n**How to apply:** Track progress and be ready to discuss scoring engine when user moves to next phase.",
+    "human_scores": {
+      "importance": null,
+      "recency": null,
+      "credibility": null,
+      "accuracy": null
+    },
+    "notes": "自动生成，场景：过时，预期动作：delete"
+  },
+  {
+    "id": "gen_conflict_a_detailed_code_commenting_style",
+    "source": "generated_from_claude_code_prompt",
+    "scenario_id": "conflict_a_detailed",
+    "quality_label": "冲突（详细派）",
+    "expected_action": "review",
+    "memory_type": "feedback",
+    "age_days": 20,
+    "content": "---\nname: Code commenting preferences\ndescription: User prefers detailed line-by-line comments with explanations for non-intuitive operations\ntype: feedback\n---\n\nWrite detailed code comments, ideally line-by-line explanations for every statement.\n\n**Why:** User wants to facilitate future code review and understanding.\n\n**How to apply:** When writing code, add comprehensive comments explaining what each line does. For non-intuitive or unexpected operations, always include the reason behind the logic.",
+    "human_scores": {
+      "importance": null,
+      "recency": null,
+      "credibility": null,
+      "accuracy": null
+    },
+    "notes": "自动生成，场景：冲突（详细派），预期动作：review"
+  },
+  {
+    "id": "gen_conflict_b_concise_code_commenting_style",
+    "source": "generated_from_claude_code_prompt",
+    "scenario_id": "conflict_b_concise",
+    "quality_label": "冲突（简洁派）",
+    "expected_action": "review",
+    "memory_type": "feedback",
+    "age_days": 8,
+    "content": "---\nname: Code commenting style preference\ndescription: User prefers minimal comments, only for complex logic\ntype: feedback\n---\n\n只在中国真正复杂的地方加注释，避免每行一个注释的风格。注释应该解释不明显的逻辑，简单的代码让它自己说话。\n\n**Why:** 过多的注释会让代码看起来混乱，降低可读性。\n\n**How to apply:** 以后只在关键逻辑处添加注释，不解释显而易见的内容，保持代码简洁。",
+    "human_scores": {
+      "importance": null,
+      "recency": null,
+      "credibility": null,
+      "accuracy": null
+    },
+    "notes": "自动生成，场景：冲突（简洁派），预期动作：review"
+  },
+  {
+    "id": "gen_accuracy_issue_night_owl_user_work_habits",
+    "source": "generated_from_claude_code_prompt",
+    "scenario_id": "accuracy_issue_night_owl",
+    "quality_label": "记偏了（过度解读）",
+    "expected_action": "review",
+    "memory_type": "user",
+    "age_days": 6,
+    "content": "---\nname: User work habits and creative style\ndescription: User sometimes codes late into night when inspiration hits\ntype: user\n---\n\n了解到用户有时会工作到很晚（甚至到凌晨两点），当灵感来的时候会停不下来。这说明用户是那种有创作热情时会沉浸其中的工作者。\n\n**Why:** 了解用户的工作风格有助于在后续互动中更好地理解他们的状态和需求。\n**How to apply:** 如果用户之后表现出疲惫或需要休息，可以适当体贴；如果用户提到赶项目或 deadline，能理解他们可能是因为沉浸其中而超时工作。",
+    "human_scores": {
+      "importance": null,
+      "recency": null,
+      "credibility": null,
+      "accuracy": null
+    },
+    "notes": "自动生成，场景：记偏了（过度解读），预期动作：review"
+  },
+  {
+    "id": "gen_daily_life_food_preference_user_dietary_preferences",
+    "source": "generated_from_claude_code_prompt",
+    "scenario_id": "daily_life_food_preference",
+    "quality_label": "高质量（日常偏好）",
+    "expected_action": "keep",
+    "memory_type": "user",
+    "age_days": 10,
+    "content": "---\nname: User dietary preferences and restrictions\ndescription: User's food restrictions and taste preferences\ntype: user\n---\n\nUser has the following dietary restrictions and preferences:\n- Does not eat spicy food (no辣)\n- Allergic to cilantro (对香菜过敏)\n- Prefers light/natural flavors (清淡)\n\n**Why:** These are stable personal dietary restrictions that should be respected in any food recommendations.\n**How to apply:** Always ensure recommended recipes are non-spicy, cilantro-free, and lean toward lighter flavors.",
+    "human_scores": {
+      "importance": null,
+      "recency": null,
+      "credibility": null,
+      "accuracy": null
+    },
+    "notes": "自动生成，场景：高质量（日常偏好），预期动作：keep"
+  },
+  {
+    "id": "gen_daily_life_food_preference_user_health_goals",
+    "source": "generated_from_claude_code_prompt",
+    "scenario_id": "daily_life_food_preference",
+    "quality_label": "高质量（日常偏好）",
+    "expected_action": "keep",
+    "memory_type": "user",
+    "age_days": 10,
+    "content": "---\nname: User health and nutrition goals\ndescription: User's current health-focused eating goal\ntype: user\n---\n\nUser is currently on a diet and prioritizes low-calorie options (在减脂，低热量优先).\n\n**Why:** This is a health goal that affects food recommendations.\n**How to apply:** Prioritize low-calorie recipes when making recommendations.",
+    "human_scores": {
+      "importance": null,
+      "recency": null,
+      "credibility": null,
+      "accuracy": null
+    },
+    "notes": "自动生成，场景：高质量（日常偏好），预期动作：keep"
+  }
+]
