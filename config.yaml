@@ -1,0 +1,55 @@
+# Memory Quality MCP · 配置文件
+
+# ── 模型提供商配置 ─────────────────────────────────────────────────────────────
+#
+# 支持的提供商（改 provider 字段即可切换）：
+#
+#   openai    → 需要设置 OPENAI_API_KEY
+#   kimi      → 需要设置 KIMI_API_KEY     (api.moonshot.cn)
+#   minimax   → 需要设置 MINIMAX_API_KEY  (api.minimax.chat)
+#   anthropic → 需要设置 ANTHROPIC_API_KEY
+#   custom    → 需要填写 base_url 和 api_key
+#
+# API Key 推荐通过环境变量设置，避免写入配置文件：
+#   export OPENAI_API_KEY=sk-xxx
+#   export KIMI_API_KEY=sk-xxx
+#   export MINIMAX_API_KEY=xxx
+#
+# 如果不填 provider，会按环境变量自动检测可用的提供商。
+
+provider: "minimax"          # openai / kimi / minimax / anthropic / custom / 留空自动检测
+model: ""             # 留空则使用该 provider 的默认模型（见下方说明）
+# base_url: ""        # 仅 custom provider 需要填写
+# api_key: ""         # 不推荐，建议用环境变量
+
+# 各 provider 的默认模型：
+#   openai    → gpt-4o-mini
+#   kimi      → moonshot-v1-8k
+#   minimax   → abab6.5s-chat
+#   anthropic → claude-haiku-4-5
+
+# ── 评分参数 ───────────────────────────────────────────────────────────────────
+
+# 综合分阈值
+thresholds:
+  delete: 2.5      # 低于此分 → 建议删除
+  review: 3.5      # 低于此分 → 建议复查；高于此分 → 保留
+
+# 评分权重（必须加和为 1.0）
+weights:
+  importance: 0.40    # 重要性：对未来对话的帮助程度
+  recency: 0.25       # 时效性：信息是否仍然准确
+  credibility: 0.15   # 可信度：是否有明确来源
+  accuracy: 0.20      # 准确性：记录是否忠实于来源
+
+# 时效性判断（单位：天）
+staleness_days:
+  project_type: 90    # project 类型记忆超过此天数 → 时效性预警
+  user_type: 180      # user 类型记忆超过此天数 → 时效性预警
+  general: 90         # 其他类型记忆超过此天数 → 时效性预警
+
+# LLM 批处理大小（每批发给 LLM 的记忆条数）
+batch_size: 6
+
+# .trash 保留天数（超过后提示用户清理，不自动删除）
+trash_retention_days: 30

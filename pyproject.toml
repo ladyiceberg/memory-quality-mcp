@@ -1,0 +1,27 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "memory-quality-mcp"
+version = "0.1.0"
+description = "A Claude MCP plugin that audits and improves the quality of your Claude Code memories"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "mcp[cli]>=1.0.0",
+    "openai>=1.0.0",
+    "pyyaml>=6.0",
+]
+
+[project.scripts]
+memory-quality-mcp = "src.server:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+]
