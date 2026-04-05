@@ -195,21 +195,27 @@ mem0 有基础质量判断，但**硬编码、不可配置、不是独立模块*
 
 ```
 memory_audit()
-  → 读取当前所有记忆，运行质量分析
-  → 返回：健康报告（总数、各维度异常数、建议清理数）
+  → 扫描所有项目记忆，运行规则引擎快速初筛（不调 LLM）
+  → 返回：健康摘要（总数、过时数、索引使用率、预估 LLM 调用次数）
 
 memory_report(verbose=False)
-  → 输出详细的记忆清单，每条附带四维质量评分
+  → 完整四维评分 + 冲突检测（调 LLM）
   → 返回：结构化列表，含建议操作（保留/复查/删除）及原因
+  → 结果自动缓存到 SQLite，供 cleanup/dashboard 复用
 
 memory_cleanup(dry_run=True)
-  → 执行清理：删除低质量记忆，合并冲突条目
-  → dry_run=True 时只预览不执行，保护用户数据
-  → 永远不静默删除
+  → 优先读缓存执行清理，无缓存时重新评分
+  → dry_run=True 时只预览不执行，永远不静默删除
+  → 删除前自动备份到 .trash/<timestamp>/，同步更新 MEMORY.md 索引
 
 memory_score(content: str)
-  → 单条记忆四维打分（开发者调试 + Benchmark 校验用）
-  → 返回：重要性/时效性/可信度/准确性四维评分 + 综合分
+  → 单条记忆四维打分（调试 + Benchmark 校验用）
+  → 规则引擎命中时不调 LLM
+
+memory_dashboard()
+  → 从缓存生成苹果极简风 HTML 健康报告，用系统默认浏览器打开
+  → 包含健康分圆环、汇总统计、可折叠记忆清单
+  → 无需重复调 LLM，复用 memory_report() 缓存
 ```
 
 ---
@@ -222,15 +228,16 @@ memory_score(content: str)
       ▼
 MCP Server（本地 Python 进程）
       │
-      ├── memory_read()     ← 通过 Claude MCP memory tool 读取记忆
-      │                        ⚠️ 需提前确认接口权限边界
+      ├── memory_reader.py  ← 扫描 ~/.claude/projects/*/memory/，读 frontmatter
       │
-      ├── quality_engine()  ← 四维评分 + 冲突检测 + 过时识别
-      │       └── 调用 Anthropic API（claude-haiku-3-5，低成本批量处理）
+      ├── quality_engine.py ← 规则引擎（零成本初筛）+ LLM 四维评分 + 冲突检测
+      │       └── llm_client.py（统一多提供商接口：OpenAI/Kimi/MiniMax/Anthropic）
       │
-      ├── benchmark_eval()  ← 对照小数据集评估评分准确率（内部用）
+      ├── session_store.py  ← SQLite 持久化 report 结果，供 cleanup/dashboard 复用
       │
-      └── memory_write()    ← 用户确认后执行清理操作
+      ├── memory_writer.py  ← 安全删除 + .trash 备份 + MEMORY.md 索引同步
+      │
+      └── dashboard.py      ← 生成苹果极简风 HTML 报告，webbrowser.open() 打开
 ```
 
 **技术选型**：
@@ -238,11 +245,12 @@ MCP Server（本地 Python 进程）
 | 组件 | 选型 | 理由 |
 |------|------|------|
 | MCP 框架 | Python MCP SDK（官方） | 最稳定，文档最全 |
-| LLM 调用 | Anthropic API（claude-haiku-3-5） | 成本低（$0.25/M tokens），速度快 |
-| 记忆读取 | Claude MCP memory tool | 官方接口，无需 hack |
-| 数据存储 | 本地 SQLite | 记录审查历史 + 用户对建议的接受/拒绝行为 |
+| LLM 调用 | 统一 OpenAI 兼容接口 | 支持 OpenAI/Kimi/MiniMax/Anthropic，用户自由选择 |
+| 记忆读取 | 直接读写本地 .md 文件 | Claude Code Auto Memory 存在 ~/.claude/projects/*/memory/ |
+| 会话状态 | 本地 SQLite（~/.memory-quality-mcp/session.db） | report 结果跨工具调用复用，cleanup 无需重复调 LLM |
+| 可视化 | 纯 HTML+CSS+内联 JS | 零外部依赖，webbrowser.open() 打开，苹果极简风 |
 | 评分校准 | 真实用户 Chatbot 脱敏数据 | 核心差异化资产，权重数据支撑而非拍板 |
-| 配置 | 单一 config.yaml | 阈值、API key 等用户可调 |
+| 配置 | ~/.memory-quality-mcp/config.yaml | 用户级配置，打包安装后仍可修改 |
 
 ---
 
@@ -393,17 +401,29 @@ memory-quality-mcp/
 ├── DESIGN.md                  ← 本文件：整体设计方案
 ├── README.md                  ← 用户安装文档（待写）
 ├── src/
-│   ├── server.py              ← MCP server 主入口
-│   ├── quality_engine.py      ← 四维评分核心逻辑
-│   ├── conflict_detector.py   ← 冲突检测（含「记偏了」场景）
+│   ├── server.py              ← MCP server 主入口（5 个工具）
+│   ├── memory_reader.py       ← 记忆文件读取层（扫描所有项目）
+│   ├── quality_engine.py      ← 四维评分 + 规则引擎 + 冲突检测
+│   ├── llm_client.py          ← 统一多提供商 LLM 接口
+│   ├── session_store.py       ← SQLite 会话状态持久化
+│   ├── memory_writer.py       ← 安全删除 + .trash 备份
+│   ├── dashboard.py           ← HTML 可视化报告生成器
+│   ├── config.py              ← 统一配置加载（~/.memory-quality-mcp/）
 │   └── prompts.py             ← 所有 LLM prompt 模板
 ├── benchmark/
-│   ├── dataset.json           ← 100 条标注样本（从真实数据构造）
-│   ├── annotation_guide.md    ← 标注规范（四维评分标准）
-│   └── eval.py                ← 评估脚本（模型分 vs 人工分相关性）
+│   ├── dataset.json           ← 标注样本（从真实数据构造）
+│   ├── README.md              ← 数据集构建指南
+│   └── eval.py                ← 评估脚本（待写）
+├── scripts/
+│   ├── generate_memories.py   ← 用 Claude Code 提取 Prompt 生成测试记忆
+│   ├── seed_memories.py       ← 写入种子数据（功能测试用）
+│   └── test_live.py           ← 真实 API 评分验证脚本
 ├── tests/
-│   └── test_quality.py        ← 单元测试
-├── config.yaml                ← 用户可调参数（评分阈值、API key 等）
+│   ├── test_memory_reader.py
+│   ├── test_quality_engine.py
+│   ├── test_session_store.py
+│   └── test_step4.py
+├── config.yaml                ← 开发时配置（生产用 ~/.memory-quality-mcp/config.yaml）
 └── pyproject.toml             ← 打包配置（用于发布到 PyPI）
 ```
 
@@ -417,6 +437,10 @@ memory-quality-mcp/
 | 平台策略 | 只提 Claude MCP | 两阶段：Claude Code 先验证，OpenClaw 后铺量 |
 | 评分维度 | 三维（重要性/时效性/可信度） | 四维（新增准确性，区分来源有无 vs 记录是否忠实）|
 | 数据资产 | 未提及 | 核心差异化，真实 Chatbot 数据用于模型校准和 Benchmark 构造 |
-| Benchmark | 未提及 | 100 条标注样本，真实数据路径 B+C 构造，有具体方法论 |
+| Benchmark | 未提及 | 标注样本，真实数据路径 B+C 构造，有具体方法论 |
 | 验证计划 | 构建→发布→观察 | 新增 Week 0 技术前提核实 + Benchmark 构造；核心指标改为「接受率」|
 | 对话示例 | 无「记偏了」场景 | 新增「记偏了」场景，对应最高频 Reddit 痛点 |
+| LLM 支持 | 仅 Anthropic | 多提供商（OpenAI/Kimi/MiniMax/Anthropic），OpenAI 兼容接口统一调用 |
+| 会话状态 | 无 | SQLite 持久化 report 结果，cleanup/dashboard 复用，不重复调 LLM |
+| 可视化 | 无 | memory_dashboard()：苹果极简风 HTML 报告，浏览器打开 |
+| 配置路径 | 项目目录 config.yaml | ~/.memory-quality-mcp/config.yaml，打包后用户可修改 |
