@@ -6,6 +6,23 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.2.0] — 2026-04-05
+
+### Added
+
+- **Internationalization (i18n)** — Dashboard and all tool output now support English and Chinese. Language is auto-detected from system locale (`LANG`/`LC_ALL`), or set explicitly via `config.yaml` (`language: en/zh/auto`) or the `MEMORY_QUALITY_LANGUAGE` environment variable.
+- **Template-based Dashboard** — HTML dashboard extracted into `src/templates/dashboard_en.html` and `dashboard_zh.html`. Clean separation of data and presentation; adding a new language requires only a new HTML file.
+- **`user`-type memory protection** — Memories of type `user` with a low composite score are now downgraded to `review` instead of `delete`, preventing accidental loss of high-value personal context.
+- **Task-type detection in scoring prompt** — The LLM scorer now explicitly checks whether a memory records a one-off task context vs. a long-term user attribute before scoring, reducing false positives on temporary state memories.
+
+### Changed
+
+- All tool output strings centralized in `src/i18n.py` — tool descriptions, report headers, error messages, and status lines now render in the configured language.
+- `memory_dashboard()` opens the English template by default; Chinese users on `zh_CN` locale get the Chinese template automatically.
+- Scoring prompts (`BATCH_SCORING_SYSTEM`, `SINGLE_SCORE_SYSTEM`) now include a language instruction so the `reason` field matches the configured language.
+
+---
+
 ## [0.1.0] — 2026-04-05
 
 Initial release.
