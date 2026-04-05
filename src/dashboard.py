@@ -11,12 +11,17 @@ dashboard.py · Memory Health Dashboard HTML 生成器
   - 所有颜色来自苹果官方 HIG 系统色（2024）
 """
 
+import json
 import time
 import webbrowser
 from pathlib import Path
 from typing import Optional
 
 from src.session_store import StoredReport, ReportEntry
+from src.config import detect_language
+
+# ── 模板目录 ──────────────────────────────────────────────────────────────────
+_TEMPLATES_DIR = Path(__file__).parent / "templates"
 
 
 # ── 苹果官方系统色（Light Mode，来自 Apple HIG 2024）─────────────────────────
@@ -195,7 +200,129 @@ def _ring_svg(health: int) -> str:
 </svg>"""
 
 
-# ── 主 HTML 生成 ──────────────────────────────────────────────────────────────
+# ── 数据序列化层（Step 1：为模板方案准备）────────────────────────────────────
+
+def _serialize_report(report: StoredReport, is_demo: bool = False) -> dict:
+    """
+    把 StoredReport 序列化为纯 Python dict，供模板注入或其他用途。
+
+    所有计算逻辑（健康分、分组、颜色、标签等）都在这里完成，
+    模板只负责渲染，不做任何业务计算。
+
+    返回结构：
+    {
+        "meta": {
+            "is_demo": bool,
+            "scan_time": str,        # 格式化扫描时间
+            "scan_time_ts": float,   # Unix 时间戳（供模板自定义格式化）
+            "total": int,
+            "health": int,           # 0-100
+            "health_color": str,     # hex 颜色
+        },
+        "stats": {
+            "keep": int,
+            "review": int,
+            "delete": int,
+            "avg_composite": float,
+            "keep_ratio": float,     # 0.0-1.0
+        },
+        "entries": [
+            {
+                "filename": str,
+                "filename_short": str,   # stem，下划线替换为空格
+                "action": str,           # keep / review / delete
+                "composite": float,
+                "reason": str,
+                "memory_type": str | None,
+                "project_dir": str,
+                "age_days": int,
+            },
+            ...
+        ]
+    }
+    """
+    entries = report.entries
+    health  = _compute_health_score(entries)
+    total   = len(entries)
+
+    keep_count   = sum(1 for e in entries if e.action == "keep")
+    review_count = sum(1 for e in entries if e.action == "review")
+    delete_count = sum(1 for e in entries if e.action == "delete")
+
+    valid_scores = [e.composite for e in entries if e.composite > 0]
+    avg_composite = round(sum(valid_scores) / len(valid_scores), 2) if valid_scores else 0.0
+    keep_ratio = round(keep_count / total, 3) if total else 1.0
+
+    scan_time_str = time.strftime("%Y-%m-%d %H:%M", time.localtime(report.created_at))
+
+    serialized_entries = []
+    for e in entries:
+        age_days = getattr(e, "age_days", 0) or 0
+        serialized_entries.append({
+            "filename":       e.filename,
+            "filename_short": Path(e.filename).stem.replace("_", " "),
+            "action":         e.action,
+            "composite":      round(e.composite, 2),
+            "reason":         e.reason,
+            "memory_type":    e.memory_type,
+            "project_dir":    e.project_dir,
+            "age_days":       age_days,
+        })
+
+    return {
+        "meta": {
+            "is_demo":      is_demo,
+            "scan_time":    scan_time_str,
+            "scan_time_ts": report.created_at,
+            "total":        total,
+            "health":       health,
+            "health_color": _health_color(health),
+        },
+        "stats": {
+            "keep":          keep_count,
+            "review":        review_count,
+            "delete":        delete_count,
+            "avg_composite": avg_composite,
+            "keep_ratio":    keep_ratio,
+        },
+        "entries": serialized_entries,
+    }
+
+
+def render_dashboard_from_template(
+    report: StoredReport,
+    is_demo: bool = False,
+    lang: str = "en",
+) -> str:
+    """
+    用模板 + JSON 数据注入生成 Dashboard HTML。
+
+    模板路径：src/templates/dashboard_<lang>.html
+    数据注入点：模板中的 {{DATA_JSON}} 占位符。
+
+    Args:
+        report:  评分结果
+        is_demo: 是否演示模式
+        lang:    语言代码，对应 templates/dashboard_<lang>.html
+
+    Returns:
+        完整 HTML 字符串
+    """
+    template_path = _TEMPLATES_DIR / f"dashboard_{lang}.html"
+
+    # 语言不存在时降级到英文
+    if not template_path.exists():
+        template_path = _TEMPLATES_DIR / "dashboard_en.html"
+
+    template = template_path.read_text(encoding="utf-8")
+
+    data = _serialize_report(report, is_demo=is_demo)
+    data_json = json.dumps(data, ensure_ascii=False)
+
+    return template.replace("{{DATA_JSON}}", data_json)
+
+
+# ── 主 HTML 生成（保留原有实现，供内部兼容使用）──────────────────────────────
 
 def generate_dashboard_html(report: StoredReport, is_demo: bool = False) -> str:
     """生成完整的 Dashboard HTML 字符串。"""
@@ -744,13 +871,15 @@ document.addEventListener('DOMContentLoaded', () => {{
 
 # ── 对外接口 ───────────────────────────────────────────────────────────────────
 
-def open_dashboard(report: StoredReport, output_path: Optional[Path] = None, is_demo: bool = False) -> Path:
+def open_dashboard(report: StoredReport, output_path: Optional[Path] = None, is_demo: bool = False, lang: Optional[str] = None) -> Path:
     """
     生成 Dashboard HTML 并用系统浏览器打开。
 
     Args:
-        report: 来自 session_store 的 StoredReport
+        report:      来自 session_store 的 StoredReport
         output_path: HTML 文件保存路径，默认写到 ~/.memory-quality-mcp/dashboard.html
+        is_demo:     是否演示模式
+        lang:        语言代码（en / zh）。不传则自动从 config/locale 检测。
 
     Returns:
         生成的 HTML 文件路径
@@ -760,7 +889,8 @@ def open_dashboard(report: StoredReport, output_path: Optional[Path] = None, is_
         output_dir.mkdir(parents=True, exist_ok=True)
         output_path = output_dir / "dashboard.html"
 
-    html = generate_dashboard_html(report, is_demo=is_demo)
+    resolved_lang = lang if lang in ("en", "zh") else detect_language()
+    html = render_dashboard_from_template(report, is_demo=is_demo, lang=resolved_lang)
     output_path.write_text(html, encoding="utf-8")
 
     # 用系统默认浏览器打开

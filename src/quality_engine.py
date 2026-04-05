@@ -19,16 +19,16 @@ from typing import Optional
 
 from src.llm_client import LLMClient, create_client
 from src.memory_reader import MemoryFile, MemoryHeader, memory_age_days, read_memory_file
-from src.config import load_config
+from src.config import load_config, detect_language
 from src.prompts import (
     BATCH_SCORING_SCHEMA,
-    BATCH_SCORING_SYSTEM,
     BATCH_SCORING_USER_TEMPLATE,
     CONFLICT_DETECTION_SCHEMA,
     CONFLICT_DETECTION_SYSTEM,
     CONFLICT_DETECTION_USER_TEMPLATE,
     SINGLE_SCORE_SCHEMA,
-    SINGLE_SCORE_SYSTEM,
+    get_batch_scoring_system,
+    get_single_score_system,
 )
 
 
@@ -224,11 +224,21 @@ def _compute_composite(
     )
 
 
-def _action_from_composite(composite: float, is_not_to_save: bool) -> str:
-    """根据综合分和「不该存」标志返回建议操作。"""
+def _action_from_composite(
+    composite: float,
+    is_not_to_save: bool,
+    memory_type: Optional[str] = None,
+) -> str:
+    """根据综合分和「不该存」标志返回建议操作。
+
+    user 类型保护：综合分低于删除阈值时，user 类型不直接删除，降级为 review。
+    原因：user 类型记录用户的个人属性/背景，误删代价远高于误留，保守处理更安全。
+    """
     if is_not_to_save:
         return "delete"
     if composite < THRESHOLDS["delete"]:
+        if memory_type == "user":
+            return "review"
         return "delete"
     if composite < THRESHOLDS["review"]:
         return "review"
@@ -328,7 +338,7 @@ def _score_single_batch(
     )
 
     response = client.complete(
-        system=BATCH_SCORING_SYSTEM,
+        system=get_batch_scoring_system(detect_language()),
         user=user_msg,
         json_schema=BATCH_SCORING_SCHEMA,
         max_tokens=2048,
@@ -352,7 +362,7 @@ def _score_single_batch(
             credibility = float(raw.get("credibility", 3))
             composite = _compute_composite(importance, recency, credibility, accuracy)
             is_not_to_save = bool(raw.get("is_not_to_save", False))
-            action = _action_from_composite(composite, is_not_to_save)
+            action = _action_from_composite(composite, is_not_to_save, mf.header.memory_type)
 
             scored.append(ScoredMemory(
                 header=mf.header,
@@ -479,7 +489,7 @@ def score_single(
         client = _get_client()
 
     response = client.complete(
-        system=SINGLE_SCORE_SYSTEM,
+        system=get_single_score_system(detect_language()),
         user=f"请评分以下记忆内容：\n\n{content}",
         json_schema=SINGLE_SCORE_SCHEMA,
         max_tokens=512,
@@ -496,7 +506,7 @@ def score_single(
     credibility = float(raw.get("credibility", 3))
     composite = _compute_composite(importance, recency, credibility, accuracy)
     is_not_to_save = bool(raw.get("is_not_to_save", False))
-    action = _action_from_composite(composite, is_not_to_save)
+    action = _action_from_composite(composite, is_not_to_save, memory_type)
 
     return ScoredMemory(
         header=tmp_header,

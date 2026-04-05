@@ -17,6 +17,14 @@ WHAT_NOT_TO_SAVE_RULES = """
 - 调试方案、bug 修复记录（修复在代码里，commit message 有上下文）
 - CLAUDE.md 里已有的内容（重复存储）
 - 临时任务状态、当前会话进行中的工作、短期计划
+
+【前置判断：任务性检测（在四维评分前先过这一关）】
+以下情况直接标记 is_not_to_save=true 并输出 delete，不进入四维评分：
+  1. 记忆的主体是「AI 说给用户的内容」（AI 的建议、警告、解释、推荐），而非「用户自身的属性/偏好/背景」
+     - 判断方法：记忆描述的主语是 AI 还是用户？「用户不喜欢X」→ 用户属性，保留；「避免X诈骗手法」→ AI 建议，删除
+  2. 内容是单次创作/写作任务的素材（角色设定、剧情背景、小说世界观等），不是用户跨对话长期有效的偏好
+     - 判断方法：这段内容在任务结束后还有价值吗？没有 → 删除
+  3. 内容只服务于一个特定的一次性事件/任务，任务结束后即失去意义
 """
 
 # ── 四维评分定义 ──────────────────────────────────────────────────────────────
@@ -184,3 +192,23 @@ SINGLE_SCORE_SCHEMA = {
     ],
     "additionalProperties": False,
 }
+
+
+# ── 语言指令（追加到 system prompt 末尾）─────────────────────────────────────
+
+_REASON_LANG_INSTRUCTION = {
+    "en": "Please write the 'reason' field in English.",
+    "zh": "请用中文输出 reason 字段。",
+}
+
+
+def get_batch_scoring_system(lang: str = "en") -> str:
+    """返回带语言指令的批量评分 system prompt。"""
+    instruction = _REASON_LANG_INSTRUCTION.get(lang, _REASON_LANG_INSTRUCTION["en"])
+    return BATCH_SCORING_SYSTEM.rstrip() + f"\n{instruction}\n"
+
+
+def get_single_score_system(lang: str = "en") -> str:
+    """返回带语言指令的单条评分 system prompt。"""
+    instruction = _REASON_LANG_INSTRUCTION.get(lang, _REASON_LANG_INSTRUCTION["en"])
+    return SINGLE_SCORE_SYSTEM.rstrip() + f"\n{instruction}\n"

@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>记忆健康报告</title>
+<style>
+
+/* ── Reset & Base ─────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+  background: #F2F2F7;
+  color: #1D1D1F;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Layout ───────────────────────────────────────────────────────────── */
+.page {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 48px 20px 80px;
+}
+
+/* ── Header ───────────────────────────────────────────────────────────── */
+.header { margin-bottom: 32px; }
+.header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+.header-title {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  color: #1D1D1F;
+}
+.header-badge {
+  font-size: 11px;
+  font-weight: 500;
+  color: #AEAEB2;
+  background: #FFFFFF;
+  border: 1px solid rgba(0,0,0,0.08);
+  border-radius: 20px;
+  padding: 3px 10px;
+  letter-spacing: 0.2px;
+}
+.header-sub {
+  font-size: 13px;
+  color: #AEAEB2;
+}
+
+/* ── Hero Card ────────────────────────────────────────────────────────── */
+.hero-card {
+  background: #FFFFFF;
+  border-radius: 16px;
+  box-shadow: 0 1px 0 rgba(0,0,0,0.08), 0 4px 20px rgba(0,0,0,0.05);
+  padding: 32px 28px 28px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 32px;
+}
+.ring-svg { width: 120px; height: 120px; flex-shrink: 0; }
+.hero-right { flex: 1; min-width: 0; }
+.hero-headline {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  color: #1D1D1F;
+  margin-bottom: 4px;
+}
+.hero-sub {
+  font-size: 14px;
+  color: #6E6E73;
+  margin-bottom: 20px;
+  line-height: 1.4;
+}
+.stats-row {
+  display: flex;
+  gap: 0;
+  border: 1px solid rgba(0,0,0,0.08);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.stat-item {
+  flex: 1;
+  padding: 10px 0;
+  text-align: center;
+  border-right: 1px solid rgba(0,0,0,0.08);
+}
+.stat-item:last-child { border-right: none; }
+.stat-number {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  line-height: 1;
+  margin-bottom: 3px;
+}
+.stat-label {
+  font-size: 11px;
+  color: #AEAEB2;
+  letter-spacing: 0.2px;
+}
+
+/* ── Dim Cards ────────────────────────────────────────────────────────── */
+.dim-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.dim-card {
+  background: #FFFFFF;
+  border-radius: 12px;
+  box-shadow: 0 1px 0 rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.04);
+  padding: 16px 16px 14px;
+}
+.dim-name {
+  font-size: 12px;
+  color: #AEAEB2;
+  margin-bottom: 6px;
+  letter-spacing: 0.2px;
+}
+.dim-score {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  line-height: 1;
+  margin-bottom: 8px;
+}
+.dim-bar-track {
+  height: 3px;
+  background: #E5E5EA;
+  border-radius: 2px;
+  overflow: hidden;
+}
+.dim-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.6s ease;
+}
+
+/* ── Section ──────────────────────────────────────────────────────────── */
+.section-details {
+  background: #FFFFFF;
+  border-radius: 12px;
+  box-shadow: 0 1px 0 rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.04);
+  margin-bottom: 10px;
+  overflow: hidden;
+}
+.section-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 18px;
+  cursor: pointer;
+  user-select: none;
+  list-style: none;
+  transition: background 0.15s;
+}
+.section-summary:hover { background: #F2F2F7; }
+.section-summary::-webkit-details-marker { display: none; }
+.section-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.section-icon { font-size: 15px; width: 20px; text-align: center; }
+.section-title { font-size: 15px; font-weight: 600; color: #1D1D1F; }
+.section-count { font-size: 13px; font-weight: 600; opacity: 0.85; }
+.section-chevron { transition: transform 0.2s ease; flex-shrink: 0; }
+details[open] .section-chevron { transform: rotate(180deg); }
+.section-body {
+  border-top: 1px solid rgba(0,0,0,0.05);
+  padding: 8px 10px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* ── Entry Card ───────────────────────────────────────────────────────── */
+.entry-card {
+  border-radius: 8px;
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.entry-card:hover { background: #F2F2F7; }
+.entry-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.entry-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+.entry-badge {
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 5px;
+  padding: 2px 7px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  letter-spacing: 0.1px;
+}
+.entry-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #1D1D1F;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.entry-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.entry-meta { font-size: 12px; color: #6E6E73; white-space: nowrap; }
+.entry-meta.muted { color: #AEAEB2; }
+.entry-score { font-size: 13px; font-weight: 600; min-width: 24px; text-align: right; }
+.chevron { transition: transform 0.2s ease; flex-shrink: 0; }
+.entry-card.expanded .chevron { transform: rotate(180deg); }
+
+/* ── Entry Detail ─────────────────────────────────────────────────────── */
+.entry-detail {
+  display: none;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(0,0,0,0.05);
+}
+.entry-card.expanded .entry-detail { display: block; }
+.entry-score-bar {
+  height: 3px;
+  background: #E5E5EA;
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+.score-bar-fill { height: 100%; border-radius: 2px; transition: width 0.5s ease; }
+.entry-reason {
+  font-size: 13px;
+  color: #6E6E73;
+  line-height: 1.5;
+  margin-bottom: 6px;
+}
+.entry-filename {
+  font-size: 11px;
+  color: #AEAEB2;
+  font-family: "SF Mono", "Menlo", monospace;
+  background: #F2F2F7;
+  border-radius: 4px;
+  padding: 3px 7px;
+  display: inline-block;
+}
+
+/* ── Footer ───────────────────────────────────────────────────────────── */
+.footer {
+  margin-top: 40px;
+  text-align: center;
+  font-size: 12px;
+  color: #AEAEB2;
+}
+.footer a { color: #0066CC; text-decoration: none; }
+
+/* ── Responsive ───────────────────────────────────────────────────────── */
+@media (max-width: 500px) {
+  .hero-card { flex-direction: column; gap: 20px; align-items: flex-start; }
+  .ring-svg { width: 100px; height: 100px; }
+  .page { padding: 24px 16px 60px; }
+}
+
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-top">
+      <span class="header-title">记忆健康报告</span>
+      <span class="header-badge" id="age-badge"></span>
+    </div>
+    <div class="header-sub" id="header-sub"></div>
+  </div>
+
+  <!-- Hero Card -->
+  <div class="hero-card">
+    <svg class="ring-svg" id="ring-svg" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="60" cy="60" r="54" stroke="#E5E5EA" stroke-width="8"/>
+      <circle id="ring-arc" cx="60" cy="60" r="54"
+        stroke="#5856D6" stroke-width="8" stroke-linecap="round"
+        stroke-dasharray="0 339.3" transform="rotate(-90 60 60)"
+        style="transition: stroke-dasharray 0.8s ease"/>
+      <text x="60" y="56" text-anchor="middle" dominant-baseline="middle"
+        font-family="-apple-system, SF Pro Display, Helvetica Neue, sans-serif"
+        font-size="26" font-weight="700" id="ring-score" fill="#5856D6"></text>
+      <text x="60" y="74" text-anchor="middle" dominant-baseline="middle"
+        font-family="-apple-system, SF Pro Text, Helvetica Neue, sans-serif"
+        font-size="10" font-weight="400" fill="#AEAEB2" letter-spacing="0.5">/ 100</text>
+    </svg>
+    <div class="hero-right">
+      <div class="hero-headline" id="hero-headline"></div>
+      <div class="hero-sub" id="hero-sub"></div>
+      <div class="stats-row">
+        <div class="stat-item">
+          <div class="stat-number" id="stat-keep" style="color:#34C759"></div>
+          <div class="stat-label">保留</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-number" id="stat-review" style="color:#FF9500"></div>
+          <div class="stat-label">复查</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-number" id="stat-delete" style="color:#FF3B30"></div>
+          <div class="stat-label">删除</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stat Cards -->
+  <div class="dim-grid">
+    <div class="dim-card">
+      <div class="dim-name">综合分</div>
+      <div class="dim-score" style="color:#1D1D1F">
+        <span id="avg-score"></span><span style="font-size:14px;font-weight:400;color:#AEAEB2"> /5</span>
+      </div>
+      <div class="dim-bar-track"><div class="dim-bar-fill" id="bar-avg-score"></div></div>
+    </div>
+    <div class="dim-card">
+      <div class="dim-name">记忆总量</div>
+      <div class="dim-score" style="color:#1D1D1F">
+        <span id="total-count"></span><span style="font-size:14px;font-weight:400;color:#AEAEB2"> 条</span>
+      </div>
+      <div class="dim-bar-track"><div class="dim-bar-fill" id="bar-total"></div></div>
+    </div>
+    <div class="dim-card">
+      <div class="dim-name">保留率</div>
+      <div class="dim-score" style="color:#1D1D1F">
+        <span id="keep-rate"></span><span style="font-size:14px;font-weight:400;color:#AEAEB2"> %</span>
+      </div>
+      <div class="dim-bar-track"><div class="dim-bar-fill" id="bar-keep-rate"></div></div>
+    </div>
+    <div class="dim-card">
+      <div class="dim-name">需处理</div>
+      <div class="dim-score" style="color:#1D1D1F">
+        <span id="needs-attention"></span><span style="font-size:14px;font-weight:400;color:#AEAEB2"> 条</span>
+      </div>
+      <div class="dim-bar-track"><div class="dim-bar-fill" id="bar-attention"></div></div>
+    </div>
+  </div>
+
+  <!-- Memory List -->
+  <div id="memory-sections"></div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <span id="demo-note"></span>
+    Generated by <a href="https://github.com/ladyiceberg/memory-quality-mcp">Memory Quality MCP</a>
+    &nbsp;·&nbsp;
+    <a href="https://github.com/ladyiceberg/memory-quality-mcp/issues/new?template=wrong_score.md&title=Wrong+Score">评分不准确？告诉我</a>
+    &nbsp;·&nbsp;
+    <a href="https://github.com/ladyiceberg/memory-quality-mcp/issues/new?template=bug_report.md">报告问题</a>
+  </div>
+
+</div>
+
+<script>
+// ── Data injected by Python ────────────────────────────────────────────────
+var __DATA__ = {{DATA_JSON}};
+
+// ── Constants ──────────────────────────────────────────────────────────────
+var COLORS = {
+  green:  '#34C759',
+  orange: '#FF9500',
+  red:    '#FF3B30',
+  blue:   '#007AFF',
+  indigo: '#5856D6',
+  text_primary:   '#1D1D1F',
+  text_secondary: '#6E6E73',
+  text_tertiary:  '#AEAEB2',
+  green_bg:  'rgba(52,199,89,0.08)',
+  orange_bg: 'rgba(255,149,0,0.08)',
+  red_bg:    'rgba(255,59,48,0.08)',
+};
+
+var ACTION_COLORS = { keep: COLORS.green, review: COLORS.orange, delete: COLORS.red };
+var ACTION_BG     = { keep: COLORS.green_bg, review: COLORS.orange_bg, delete: COLORS.red_bg };
+var ACTION_ICONS  = { keep: '✓', review: '!', delete: '×' };
+var ACTION_LABELS = { keep: '保留', review: '复查', delete: '删除' };
+var TYPE_LABELS   = { user: '用户偏好', feedback: '行为反馈', project: '项目背景', reference: '外部引用' };
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+function ageDisplay(days) {
+  if (days === 0) return '今天';
+  if (days === 1) return '昨天';
+  if (days < 30)  return days + ' 天前';
+  if (days < 365) return Math.floor(days / 30) + ' 个月前';
+  return Math.floor(days / 365) + ' 年前';
+}
+
+function scoreColor(score) {
+  if (score >= 3.5) return COLORS.green;
+  if (score >= 2.5) return COLORS.orange;
+  return COLORS.red;
+}
+
+function barWidth(val, max) {
+  return Math.min(100, Math.round(val / max * 100)) + '%';
+}
+
+function el(tag, attrs, html) {
+  var e = document.createElement(tag);
+  for (var k in (attrs || {})) {
+    if (k === 'style') { e.style.cssText = attrs[k]; }
+    else { e.setAttribute(k, attrs[k]); }
+  }
+  if (html !== undefined) e.innerHTML = html;
+  return e;
+}
+
+// ── Entry Card ─────────────────────────────────────────────────────────────
+function buildEntryCard(entry, index) {
+  var color    = ACTION_COLORS[entry.action] || COLORS.text_secondary;
+  var bg       = ACTION_BG[entry.action]     || 'transparent';
+  var icon     = ACTION_ICONS[entry.action]  || '?';
+  var label    = ACTION_LABELS[entry.action] || entry.action;
+  var typeLabel = TYPE_LABELS[entry.memory_type] || (entry.memory_type || 'Unknown');
+  var age      = ageDisplay(entry.age_days || 0);
+  var scorePct = Math.round(entry.composite / 5 * 100);
+
+  var card = el('div', {'class': 'entry-card', 'data-index': index});
+  card.innerHTML =
+    '<div class="entry-header">' +
+      '<div class="entry-left">' +
+        '<span class="entry-badge" style="color:' + color + ';background:' + bg + '">' + icon + ' ' + label + '</span>' +
+        '<span class="entry-name">' + entry.filename_short + '</span>' +
+      '</div>' +
+      '<div class="entry-right">' +
+        '<span class="entry-meta">' + typeLabel + '</span>' +
+        '<span class="entry-meta muted">' + age + '</span>' +
+        '<span class="entry-score" style="color:' + color + '">' + entry.composite.toFixed(1) + '</span>' +
+        '<svg class="chevron" width="12" height="12" viewBox="0 0 12 12" fill="none">' +
+          '<path d="M3 4.5L6 7.5L9 4.5" stroke="' + COLORS.text_tertiary + '" stroke-width="1.5" stroke-linecap="round"/>' +
+        '</svg>' +
+      '</div>' +
+    '</div>' +
+    '<div class="entry-detail">' +
+      '<div class="entry-score-bar"><div class="score-bar-fill" style="width:' + scorePct + '%;background:' + color + '"></div></div>' +
+      '<p class="entry-reason">' + entry.reason + '</p>' +
+      '<p class="entry-filename">' + entry.filename + '</p>' +
+    '</div>';
+
+  card.addEventListener('click', function() { card.classList.toggle('expanded'); });
+  return card;
+}
+
+// ── Section ────────────────────────────────────────────────────────────────
+function buildSection(title, action, items, defaultOpen) {
+  if (!items.length) return null;
+  var color = ACTION_COLORS[action] || COLORS.text_secondary;
+  var icon  = ACTION_ICONS[action]  || '?';
+
+  var details = el('details', {'class': 'section-details'});
+  if (defaultOpen) details.setAttribute('open', '');
+
+  var summary = el('summary', {'class': 'section-summary'});
+  summary.innerHTML =
+    '<div class="section-title-row">' +
+      '<span class="section-icon" style="color:' + color + '">' + icon + '</span>' +
+      '<span class="section-title">' + title + '</span>' +
+      '<span class="section-count" style="color:' + color + '">' + items.length + '</span>' +
+    '</div>' +
+    '<svg class="section-chevron" width="14" height="14" viewBox="0 0 14 14" fill="none">' +
+      '<path d="M3.5 5.25L7 8.75L10.5 5.25" stroke="' + COLORS.text_secondary + '" stroke-width="1.5" stroke-linecap="round"/>' +
+    '</svg>';
+
+  var body = el('div', {'class': 'section-body'});
+  items.forEach(function(entry, i) { body.appendChild(buildEntryCard(entry, i)); });
+
+  details.appendChild(summary);
+  details.appendChild(body);
+  return details;
+}
+
+// ── Render ─────────────────────────────────────────────────────────────────
+function render() {
+  var d = __DATA__;
+  var meta  = d.meta;
+  var stats = d.stats;
+  var entries = d.entries;
+
+  // Header
+  var ageMs   = (Date.now() / 1000 - meta.scan_time_ts);
+  var ageMins = Math.floor(ageMs / 60);
+  var ageStr  = ageMins < 1 ? '刚刚' :
+                ageMins < 60 ? ageMins + ' 分钟前' :
+                Math.floor(ageMins / 60) < 24 ? Math.floor(ageMins / 60) + ' 小时前' :
+                Math.floor(ageMins / 1440) + ' 天前';
+  document.getElementById('age-badge').textContent = '分析于 ' + ageStr;
+  document.getElementById('header-sub').textContent = meta.scan_time + ' · ' + meta.total + ' 条记忆';
+  document.title = '记忆健康报告 · ' + meta.scan_time;
+
+  // Ring
+  var health = meta.health;
+  var hColor = health >= 80 ? COLORS.green : health >= 60 ? COLORS.orange : COLORS.red;
+  var circ   = 2 * Math.PI * 54;
+  var arc    = document.getElementById('ring-arc');
+  var scoreEl = document.getElementById('ring-score');
+  arc.setAttribute('stroke', hColor);
+  scoreEl.setAttribute('fill', hColor);
+  scoreEl.textContent = health;
+  setTimeout(function() {
+    arc.setAttribute('stroke-dasharray', (health / 100 * circ).toFixed(1) + ' ' + (circ * (1 - health / 100)).toFixed(1));
+  }, 100);
+
+  // Hero
+  var headline, sub;
+  if (health >= 80) {
+    headline = '记忆库状态良好';
+    sub = '大部分记忆质量高，可以放心使用。';
+  } else if (health >= 60) {
+    headline = '记忆库需要关注';
+    sub = (stats.review + stats.delete) + ' 条记忆建议处理。';
+  } else {
+    headline = '记忆库需要清理';
+    sub = stats.delete + ' 条建议删除，' + stats.review + ' 条需要复查。';
+  }
+  document.getElementById('hero-headline').textContent = headline;
+  document.getElementById('hero-sub').textContent      = sub;
+  document.getElementById('stat-keep').textContent   = stats.keep;
+  document.getElementById('stat-review').textContent = stats.review;
+  document.getElementById('stat-delete').textContent = stats.delete;
+
+  // Stat cards
+  document.getElementById('avg-score').textContent     = stats.avg_composite.toFixed(1);
+  document.getElementById('total-count').textContent   = meta.total;
+  document.getElementById('keep-rate').textContent     = Math.round(stats.keep_ratio * 100);
+  document.getElementById('needs-attention').textContent = stats.review + stats.delete;
+
+  var avgColor = scoreColor(stats.avg_composite);
+  document.getElementById('bar-avg-score').style.width      = barWidth(stats.avg_composite, 5);
+  document.getElementById('bar-avg-score').style.background = avgColor;
+  document.getElementById('bar-total').style.width          = barWidth(Math.min(meta.total, 200), 200);
+  document.getElementById('bar-total').style.background     = COLORS.blue;
+  document.getElementById('bar-keep-rate').style.width      = barWidth(stats.keep_ratio * 100, 100);
+  document.getElementById('bar-keep-rate').style.background = scoreColor(stats.keep_ratio * 5);
+  var attn = stats.review + stats.delete;
+  document.getElementById('bar-attention').style.width      = barWidth(attn, meta.total);
+  document.getElementById('bar-attention').style.background = attn > 0 ? COLORS.orange : COLORS.green;
+
+  // Memory sections
+  var deleteEntries = entries.filter(function(e) { return e.action === 'delete'; });
+  var reviewEntries = entries.filter(function(e) { return e.action === 'review'; });
+  var keepEntries   = entries.filter(function(e) { return e.action === 'keep';   });
+
+  var container = document.getElementById('memory-sections');
+  [
+    buildSection('建议删除', 'delete', deleteEntries, true),
+    buildSection('建议复查', 'review', reviewEntries, true),
+    buildSection('状态良好', 'keep',   keepEntries,   false),
+  ].forEach(function(s) { if (s) container.appendChild(s); });
+
+  // Footer demo note
+  if (meta.is_demo) {
+    document.getElementById('demo-note').innerHTML = '🧪 演示模式 · 使用内置示例数据<br>';
+  }
+}
+
+document.addEventListener('DOMContentLoaded', render);
+</script>
+</body>
+</html>

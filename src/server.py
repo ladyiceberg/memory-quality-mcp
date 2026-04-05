@@ -19,6 +19,7 @@ from mcp.server.stdio import stdio_server
 from mcp.types import TextContent, Tool
 
 from src.config import load_config
+from src.i18n import t
 
 # ── 加载配置 ──────────────────────────────────────────────────────────────────
 
@@ -36,11 +37,7 @@ async def list_tools() -> list[Tool]:
     return [
         Tool(
             name="memory_audit",
-            description=(
-                "快速扫描你所有 Claude Code 项目的记忆库，返回健康摘要。"
-                "默认扫描全部项目；传入 project_path 可只扫描指定项目。"
-                "不调用 LLM，速度快，适合先做整体了解。"
-            ),
+            description=t("tool.audit.desc"),
             inputSchema={
                 "type": "object",
                 "properties": {
@@ -57,12 +54,7 @@ async def list_tools() -> list[Tool]:
         ),
         Tool(
             name="memory_report",
-            description=(
-                "对记忆库做详细的质量分析，每条记忆附带四维评分"
-                "（重要性 / 时效性 / 可信度 / 准确性）和建议操作（保留 / 复查 / 删除）。"
-                "默认扫描全部项目；传入 project_path 可只分析指定项目。"
-                "会调用 LLM 进行分析，耗时比 memory_audit 长。"
-            ),
+            description=t("tool.report.desc"),
             inputSchema={
                 "type": "object",
                 "properties": {
@@ -84,11 +76,7 @@ async def list_tools() -> list[Tool]:
         ),
         Tool(
             name="memory_cleanup",
-            description=(
-                "执行记忆清理。默认为预览模式（dry_run=true），只展示将要清理的内容，不实际删除。"
-                "设置 dry_run=false 并经过用户明确确认后，才会执行删除。"
-                "删除前会自动备份到 .trash 目录。"
-            ),
+            description=t("tool.cleanup.desc"),
             inputSchema={
                 "type": "object",
                 "properties": {
@@ -118,10 +106,7 @@ async def list_tools() -> list[Tool]:
         ),
         Tool(
             name="memory_score",
-            description=(
-                "对单条记忆内容进行四维质量打分（重要性 / 时效性 / 可信度 / 准确性）。"
-                "主要用于调试和验证评分模型，也可以用来评估一条新记忆是否值得保存。"
-            ),
+            description=t("tool.score.desc"),
             inputSchema={
                 "type": "object",
                 "properties": {
@@ -140,12 +125,7 @@ async def list_tools() -> list[Tool]:
         ),
         Tool(
             name="memory_dashboard",
-            description=(
-                "生成记忆健康报告的可视化页面，用系统默认浏览器打开。"
-                "优先复用上一次 memory_report() 的缓存结果，无需重新调用 LLM。"
-                "如果没有缓存，会先运行一次完整分析再打开页面。"
-                "传入 demo=true 可使用内置示例数据，无需真实记忆文件，适合首次体验。"
-            ),
+            description=t("tool.dashboard.desc"),
             inputSchema={
                 "type": "object",
                 "properties": {
@@ -186,7 +166,7 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
     elif name == "memory_dashboard":
         return await _handle_memory_dashboard(arguments)
     else:
-        return [TextContent(type="text", text=f"未知工具：{name}")]
+        return [TextContent(type="text", text=t("common.unknown_tool", name=name))]
 
 
 # ── 4b：memory_audit ──────────────────────────────────────────────────────────
@@ -209,18 +189,12 @@ async def _handle_memory_audit(arguments: dict) -> list[TextContent]:
     multi = scan_all_projects(project_path)
 
     if multi.project_count == 0 or multi.total_count == 0:
-        hint = (
-            f"指定项目 `{project_path_str}` 下" if project_path_str
-            else "所有项目下"
+        scope = (
+            t("audit.no_memories_scope_suffix", path=project_path_str)
+            if project_path_str
+            else t("audit.no_memories_scope_all")
         )
-        return [TextContent(type="text", text=(
-            f"📭 未找到 Claude Code 记忆文件（{hint}）。\n\n"
-            "可能原因：\n"
-            "- Claude Code 版本低于 v2.1.59，Auto Memory 功能尚未开放\n"
-            "- Auto Memory 被禁用（检查 `CLAUDE_CODE_DISABLE_AUTO_MEMORY` 环境变量）\n"
-            "- 还没有积累足够多的对话让 Claude 决定写入记忆\n"
-            "- 记忆目录在非默认位置（检查 `~/.claude/settings.json`）"
-        ))]
+        return [TextContent(type="text", text=t("audit.no_memories", scope=scope))]
 
     total = multi.total_count
     all_headers = multi.total_headers
@@ -241,43 +215,36 @@ async def _handle_memory_audit(arguments: dict) -> list[TextContent]:
             oldest_header = h
 
     # 构建输出
-    scope = f"项目 `{project_path_str}`" if project_path_str else f"全部 {multi.project_count} 个项目"
+    scope = t("audit.scope_project", path=project_path_str) if project_path_str else t("audit.scope_all", n=multi.project_count)
     lines = [
-        f"## 🔍 记忆库健康报告",
-        f"",
-        f"**扫描范围**：{scope}",
-        f"**总记忆数**：{total} 条",
-        f"",
-        f"### 快速诊断",
-        f"| 指标 | 数量 |",
-        f"|------|------|",
-        f"| 可能过时（超过阈值天数）| {stale_count} 条 |",
-        f"| 建议优先审查（project 类型过时）| {project_stale_count} 条 |",
-        f"",
+        t("audit.header"),
+        "",
+        t("audit.scope", scope=scope),
+        t("audit.total", total=total),
+        "",
+        t("audit.quick_check"),
+        t("audit.table_header"),
+        t("audit.stale_count", n=stale_count),
+        t("audit.project_stale_count", n=project_stale_count),
+        "",
     ]
 
     # 多项目时按项目分列索引健康
     if multi.project_count > 1:
-        lines.append("### 各项目状态")
+        lines.append(t("audit.projects_header"))
         for scan in multi.projects:
             ih = scan.index_health
             status = "⚠️" if (ih.is_line_truncated or ih.is_byte_truncated) else "✅"
-            lines.append(
-                f"- {status} **{scan.project_name}**：{len(scan.headers)} 条记忆"
-                + (f"，索引 {ih.line_count} 行" if ih.exists else "，索引不存在")
-            )
+            index_info = t("audit.index_line_count", n=ih.line_count) if ih.exists else t("audit.index_missing")
+            lines.append(t("audit.project_row", status=status, name=scan.project_name, count=len(scan.headers), index_info=index_info))
         lines.append("")
     else:
         # 单项目展示索引健康详情
         scan = multi.projects[0]
         ih = scan.index_health
         if ih.exists:
-            lines += [
-                f"### MEMORY.md 索引状态",
-                f"- 当前：{ih.line_count} 行 / {ih.byte_count:,} 字节",
-                f"- 上限：200 行 / 25,000 字节",
-                f"- 使用率：{ih.line_count / 200:.0%}（行）",
-            ]
+            lines += [t("audit.memory_index_header")]
+            lines += [t("audit.index_stats", lines=ih.line_count, bytes=f"{ih.byte_count:,}", pct=f"{ih.line_count / 200:.0%}")]
             if ih.warning:
                 lines.append(f"- ⚠️ {ih.warning}")
             lines.append("")
@@ -285,20 +252,15 @@ async def _handle_memory_audit(arguments: dict) -> list[TextContent]:
     # 最老的记忆
     if oldest_header:
         lines += [
-            f"### 最老的记忆",
-            f"- `{oldest_header.filename}` — {format_age(oldest_header.mtime_ms)}",
-            f"  {oldest_header.description or oldest_header.name or '无描述'}",
-            f"",
+            t("audit.oldest_header"),
+            t("audit.oldest_row", filename=oldest_header.filename, age=format_age(oldest_header.mtime_ms), desc=oldest_header.description or oldest_header.name or ''),
+            "",
         ]
 
     # 预估 LLM 调用次数（帮用户决定是否运行 report）
     batch_size = CONFIG.get("batch_size", 6)
     estimated_calls = (total + batch_size - 1) // batch_size + 1  # +1 冲突检测
-    lines += [
-        f"---",
-        f"▶ 运行 `memory_report()` 获取详细的质量评分和清理建议",
-        f"  （预计调用 LLM 约 {estimated_calls} 次）",
-    ]
+    lines += [t("audit.footer", n=estimated_calls)]
 
     return [TextContent(type="text", text="\n".join(lines))]
 
@@ -324,7 +286,7 @@ async def _handle_memory_report(arguments: dict) -> list[TextContent]:
     multi = scan_all_projects(project_path)
 
     if multi.total_count == 0:
-        return [TextContent(type="text", text="📭 未找到记忆文件，无需分析。")]
+        return [TextContent(type="text", text=t("report.no_memories"))]
 
     # 读取全文（LLM 评分需要完整内容）
     memory_files = []
@@ -344,11 +306,7 @@ async def _handle_memory_report(arguments: dict) -> list[TextContent]:
     try:
         result = run_quality_engine(memory_files, run_conflict_detection=True)
     except ValueError as e:
-        return [TextContent(type="text", text=(
-            f"❌ 无法运行 LLM 评分：{e}\n\n"
-            "请设置对应的 API Key 环境变量（OPENAI_API_KEY / KIMI_API_KEY / MINIMAX_API_KEY 等），\n"
-            "或在 `~/.memory-quality-mcp/config.yaml` 中配置 provider 和 api_key。"
-        ))]
+        return [TextContent(type="text", text=t("report.llm_error", error=e))]
 
     # ── 把评分结果写入 session store（P2 修复）────────────────────────────────
     from src.session_store import save_report, ReportEntry
@@ -371,20 +329,17 @@ async def _handle_memory_report(arguments: dict) -> list[TextContent]:
     report_id = save_report(store_entries)
 
     # ── 构建输出 ─────────────────────────────────────────────────────────────
-    scope = f"项目 `{project_path_str}`" if project_path_str else f"全部 {multi.project_count} 个项目"
+    scope = t("audit.scope_project", path=project_path_str) if project_path_str else t("audit.scope_all", n=multi.project_count)
     lines = [
-        f"## 📊 记忆质量详细报告",
-        f"",
-        f"**扫描范围**：{scope}　**总计**：{result.total} 条  |  "
-        f"🗑 删除 {result.to_delete} 条  |  "
-        f"🔄 复查 {result.to_review} 条  |  "
-        f"✅ 保留 {result.to_keep} 条",
-        f"",
+        t("report.header"),
+        "",
+        t("report.summary", scope=scope, total=result.total, delete=result.to_delete, review=result.to_review, keep=result.to_keep),
+        "",
     ]
 
     # 冲突
     if result.conflicts:
-        lines.append(f"### ⚡ 发现 {len(result.conflicts)} 对冲突记忆")
+        lines.append(t("report.conflicts_header", n=len(result.conflicts)))
         for c in result.conflicts:
             severity_icon = {"high": "🔴", "medium": "🟡", "low": "🟢"}.get(c.severity, "⚪")
             lines.append(f"- {severity_icon} `{c.filename_a}` × `{c.filename_b}`")
@@ -394,58 +349,50 @@ async def _handle_memory_report(arguments: dict) -> list[TextContent]:
     # 建议删除
     to_delete = [s for s in result.scored_memories if s.action == "delete"]
     if to_delete:
-        lines.append(f"### 🗑 建议删除（{len(to_delete)} 条）")
+        lines.append(t("report.delete_header", n=len(to_delete)))
         for s in to_delete:
             age = format_age(s.header.mtime_ms)
             type_tag = f"[{s.header.memory_type}]" if s.header.memory_type else "[?]"
-            not_to_save_tag = " ⚠️ 违反「不该存」规则" if s.is_not_to_save else ""
+            not_to_save_tag = t("report.not_to_save_tag") if s.is_not_to_save else ""
             lines.append(
                 f"- **{s.header.filename}** {type_tag} · {age}{not_to_save_tag}"
             )
-            lines.append(f"  综合分：{s.scores.composite:.1f} · {s.reason}")
+            lines.append(t("report.score_line", score=s.scores.composite, reason=s.reason))
         lines.append("")
 
     # 建议复查
     to_review = [s for s in result.scored_memories if s.action == "review"]
     if to_review:
-        lines.append(f"### 🔄 建议复查（{len(to_review)} 条）")
+        lines.append(t("report.review_header", n=len(to_review)))
         for s in to_review:
             age = format_age(s.header.mtime_ms)
             type_tag = f"[{s.header.memory_type}]" if s.header.memory_type else "[?]"
-            conflict_tag = " 🔀 存在冲突" if s.conflicts_with else ""
+            conflict_tag = t("report.conflict_tag") if s.conflicts_with else ""
             lines.append(
                 f"- **{s.header.filename}** {type_tag} · {age}{conflict_tag}"
             )
-            lines.append(f"  综合分：{s.scores.composite:.1f} · {s.reason}")
+            lines.append(t("report.score_line", score=s.scores.composite, reason=s.reason))
         lines.append("")
 
     # verbose 模式：也显示保留的
     if verbose:
         to_keep = [s for s in result.scored_memories if s.action == "keep"]
         if to_keep:
-            lines.append(f"### ✅ 保留（{len(to_keep)} 条）")
+            lines.append(t("report.keep_header", n=len(to_keep)))
             for s in to_keep:
                 age = format_age(s.header.mtime_ms)
-                type_tag = f"[{s.header.memory_type}]" if s.header.memory_type else "[?]"
-                lines.append(
-                    f"- **{s.header.filename}** {type_tag} · {age} · 综合分 {s.scores.composite:.1f}"
-                )
+                type_tag_val = s.header.memory_type or "?"
+                lines.append(t("report.keep_line", filename=s.header.filename, type=type_tag_val, age=age, score=s.scores.composite))
             lines.append("")
 
     # 读取错误
     if read_errors:
-        lines.append("### ⚠️ 读取错误")
+        lines.append(t("report.read_errors_header"))
         for e in read_errors:
             lines.append(f"- {e}")
         lines.append("")
 
-    lines += [
-        f"---",
-        f"▶ 确认清理请调用 `memory_cleanup(dry_run=True)` 预览，再调用 `memory_cleanup(dry_run=False)` 执行",
-        f"  （本次报告已缓存，cleanup 无需重新分析）",
-        f"",
-        f"💬 评分不准确？→ https://github.com/ladyiceberg/memory-quality-mcp/issues/new?template=wrong_score.md",
-    ]
+    lines += [t("report.footer")]
 
     return [TextContent(type="text", text="\n".join(lines))]
 
@@ -460,37 +407,36 @@ async def _handle_memory_score(arguments: dict) -> list[TextContent]:
     memory_type = arguments.get("memory_type")
 
     if not content:
-        return [TextContent(type="text", text="❌ 请提供要评分的记忆内容（content 字段不能为空）。")]
+        return [TextContent(type="text", text=t("score.empty_content"))]
 
     try:
         result = score_single(content, memory_type=memory_type)
     except ValueError as e:
-        return [TextContent(type="text", text=(
-            f"❌ 无法运行评分：{e}\n\n"
-            "请设置 API Key 环境变量（OPENAI_API_KEY / KIMI_API_KEY / MINIMAX_API_KEY 等）。"
-        ))]
+        return [TextContent(type="text", text=t("score.llm_error", error=e))]
 
     s = result.scores
     action_icon = {"keep": "✅", "review": "🔄", "delete": "🗑"}.get(result.action, "❓")
-    not_to_save_line = "\n⚠️ **违反「不该存」规则**：此类内容不应存储为记忆。" if result.is_not_to_save else ""
+    not_to_save_line = t("score.not_to_save") if result.is_not_to_save else ""
+    accuracy_val = t("score.accuracy_na") if s.accuracy == 0 else f"{s.accuracy:.1f} / 5"
+    scored_by = t("score.scored_by_rules") if result.scored_by == "rules" else t("score.scored_by_llm")
 
-    text = f"""## 🔬 记忆质量评分
-
-**建议操作**：{action_icon} {result.action.upper()}
-**综合分**：{s.composite:.2f} / 5.00{not_to_save_line}
-
-### 四维评分
-| 维度 | 得分 | 说明 |
-|------|------|------|
-| 重要性（×40%） | {s.importance:.1f} / 5 | 对未来对话的帮助程度 |
-| 时效性（×25%） | {s.recency:.1f} / 5 | 信息是否仍然准确 |
-| 可信度（×15%） | {s.credibility:.1f} / 5 | 是否有明确来源 |
-| 准确性（×20%） | {"无法评估" if s.accuracy == 0 else f"{s.accuracy:.1f} / 5"} | 记录是否忠实于来源 |
-
-### 评分依据
-{result.reason}
-
-*评分来源：{"规则引擎" if result.scored_by == "rules" else "LLM 分析"}*"""
+    text = "\n".join([
+        t("score.header"),
+        "",
+        t("score.action", icon=action_icon, action=result.action.upper()),
+        t("score.composite", score=s.composite) + not_to_save_line,
+        "",
+        t("score.dimensions_header"),
+        t("score.dim_importance", v=f"{s.importance:.1f}"),
+        t("score.dim_recency", v=f"{s.recency:.1f}"),
+        t("score.dim_credibility", v=f"{s.credibility:.1f}"),
+        t("score.dim_accuracy", v=accuracy_val),
+        "",
+        t("score.reason_header"),
+        result.reason,
+        "",
+        scored_by,
+    ])
 
     return [TextContent(type="text", text=text)]
 
@@ -519,7 +465,7 @@ async def _handle_memory_cleanup(arguments: dict) -> list[TextContent]:
     multi = scan_all_projects(project_path)
 
     if multi.total_count == 0:
-        return [TextContent(type="text", text="📭 未找到记忆文件，无需清理。")]
+        return [TextContent(type="text", text=t("cleanup.no_memories"))]
 
     all_headers = multi.total_headers
 
@@ -536,10 +482,7 @@ async def _handle_memory_cleanup(arguments: dict) -> list[TextContent]:
                 not_found.append(fname)
 
         if not_found:
-            return [TextContent(type="text", text=(
-                f"❌ 以下文件未找到：{', '.join(not_found)}\n\n"
-                f"请先运行 `memory_report()` 获取正确的文件名。"
-            ))]
+            return [TextContent(type="text", text=t("cleanup.not_found", files=', '.join(not_found)))]
     else:
         # 未指定文件：优先读最近一次 report 的缓存（P2 修复）
         from src.session_store import load_latest_report
@@ -573,10 +516,7 @@ async def _handle_memory_cleanup(arguments: dict) -> list[TextContent]:
                     run_conflict_detection=False,
                 )
             except ValueError as e:
-                return [TextContent(type="text", text=(
-                    f"❌ 无法运行评分引擎：{e}\n\n"
-                    "请先运行 `memory_report()` 生成分析缓存，或设置 API Key 环境变量。"
-                ))]
+                return [TextContent(type="text", text=t("cleanup.llm_error", error=e))]
 
             files_to_delete = [
                 s.header.file_path
@@ -585,7 +525,7 @@ async def _handle_memory_cleanup(arguments: dict) -> list[TextContent]:
             ]
 
     if not files_to_delete:
-        return [TextContent(type="text", text="✅ 没有需要清理的记忆，记忆库状态良好。")]
+        return [TextContent(type="text", text=t("cleanup.nothing_to_clean"))]
 
     # 按文件所属项目分组执行，保证每个项目的 MEMORY.md 分别更新
     from collections import defaultdict
@@ -610,9 +550,9 @@ async def _handle_memory_cleanup(arguments: dict) -> list[TextContent]:
         total_deleted = sum(len(r.files_deleted) for r in all_results)
         total_targeted = sum(len(r.files_targeted) for r in all_results)
         if dry_run:
-            parts.append(f"🔍 **预览模式**（未执行任何删除）\n共 {total_targeted} 条记忆将被清理{cache_line}\n")
+            parts.append(t("cleanup.preview_header", n=total_targeted, cache_note=cache_line))
         else:
-            parts.append(f"✅ 已清理 {total_deleted} 条记忆（跨 {len(all_results)} 个项目）{cache_line}\n")
+            parts.append(t("cleanup.done_header", n=total_deleted, projects=len(all_results), cache_note=cache_line))
         for r in all_results:
             parts.append(format_cleanup_result(r))
         output = "\n---\n".join(parts)
@@ -643,10 +583,7 @@ async def _handle_memory_dashboard(arguments: dict) -> list[TextContent]:
 
         demo_dir = Path(__file__).parent.parent / "examples" / "demo_memories"
         if not demo_dir.exists():
-            return [TextContent(type="text", text=(
-                "❌ 示例数据目录不存在。\n"
-                "请运行：python3 scripts/generate_memories.py --output examples/demo_memories"
-            ))]
+            return [TextContent(type="text", text=t("dashboard.demo_missing"))]
 
         scan = scan_memory_files(demo_dir)
         memory_files = []
@@ -659,11 +596,7 @@ async def _handle_memory_dashboard(arguments: dict) -> list[TextContent]:
         try:
             engine_result = run_quality_engine(memory_files, run_conflict_detection=True)
         except ValueError as e:
-            return [TextContent(type="text", text=(
-                f"❌ Demo 模式需要 API Key 运行评分：{e}\n\n"
-                "请设置环境变量后重试，或直接查看示例报告：\n"
-                f"python3 scripts/test_live.py --dir examples/demo_memories"
-            ))]
+            return [TextContent(type="text", text=t("dashboard.demo_llm_error", error=e))]
 
         # 构造临时 report 对象（不写入 session_store，避免污染用户的真实缓存）
         entries = []
@@ -691,14 +624,9 @@ async def _handle_memory_dashboard(arguments: dict) -> list[TextContent]:
             to_delete = len([e for e in entries if e.action == "delete"])
             to_review = len([e for e in entries if e.action == "review"])
             to_keep = total - to_delete - to_review
-            return [TextContent(type="text", text=(
-                f"✅ Demo Dashboard 已在浏览器中打开\n\n"
-                f"这是使用内置示例数据的演示，共 {total} 条模拟记忆\n"
-                f"概览：✓ 保留 {to_keep}  ！复查 {to_review}  × 删除 {to_delete}\n\n"
-                f"💡 想分析你自己的真实记忆？先运行 `memory_report()` 再打开 Dashboard"
-            ))]
+            return [TextContent(type="text", text=t("dashboard.demo_opened", total=total, keep=to_keep, review=to_review, delete=to_delete))]
         except Exception as e:
-            return [TextContent(type="text", text=f"❌ 打开 Demo Dashboard 失败：{e}")]
+            return [TextContent(type="text", text=t("dashboard.demo_open_error", error=e))]
 
     # ── 正常模式 ──────────────────────────────────────────────────────────────
     cached = load_latest_report()
@@ -709,10 +637,7 @@ async def _handle_memory_dashboard(arguments: dict) -> list[TextContent]:
         cached = load_latest_report()
 
         if not cached:
-            return [TextContent(type="text", text=(
-                "❌ 未能生成报告缓存。请先运行 `memory_report()` 再打开 Dashboard。\n\n"
-                "💡 还没有记忆文件？可以先用演示模式：`memory_dashboard(demo=True)`"
-            ))]
+            return [TextContent(type="text", text=t("dashboard.no_cache"))]
 
     # 生成 HTML 并打开浏览器
     try:
@@ -723,19 +648,9 @@ async def _handle_memory_dashboard(arguments: dict) -> list[TextContent]:
         to_review = len(cached.to_review)
         to_keep = total - to_delete - to_review
 
-        return [TextContent(type="text", text=(
-            f"✅ Dashboard 已在浏览器中打开\n\n"
-            f"数据来源：{age_str}的分析（{total} 条记忆）\n"
-            f"文件路径：{html_path}\n\n"
-            f"概览：✓ 保留 {to_keep}  ！复查 {to_review}  × 删除 {to_delete}\n\n"
-            f"💬 评分不准确？→ https://github.com/ladyiceberg/memory-quality-mcp/issues/new?template=wrong_score.md"
-        ))]
+        return [TextContent(type="text", text=t("dashboard.opened", age=age_str, total=total, path=html_path, keep=to_keep, review=to_review, delete=to_delete))]
     except Exception as e:
-        return [TextContent(type="text", text=(
-            f"❌ 打开 Dashboard 失败：{e}\n\n"
-            f"请检查系统是否有默认浏览器，或手动打开：\n"
-            f"~/.memory-quality-mcp/dashboard.html"
-        ))]
+        return [TextContent(type="text", text=t("dashboard.open_error", error=e))]
 
 
 # ── 启动入口 ──────────────────────────────────────────────────────────────────

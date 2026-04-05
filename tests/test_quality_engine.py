@@ -263,8 +263,9 @@ class TestLLMScoreBatch:
     def test_综合分由代码重新计算不信任LLM返回值(self):
         """综合分必须由代码计算，不能直接用 LLM 返回的 composite 值。"""
         mf = make_memory_file(
-            content="---\nname: 测试\ntype: user\n---\n内容",
+            content="---\nname: 测试\ntype: project\n---\n内容",
             filename="test.md",
+            memory_type="project",
         )
         mock_client = make_mock_client([{
             "filename": "test.md",
@@ -281,8 +282,31 @@ class TestLLMScoreBatch:
         results = llm_score_batch([mf], client=mock_client)
         # 代码重新计算：2×0.4+2×0.25+2×0.15+2×0.2 = 2.0
         assert results[0].scores.composite == pytest.approx(2.0, abs=0.1)
-        # 综合分 2.0 < 2.5，应该是 delete
+        # 综合分 2.0 < 2.5，project 类型应该是 delete
         assert results[0].action == "delete"
+
+    def test_user类型低分升级为review不直接删除(self):
+        """user 类型记忆综合分低于删除阈值时，应升级为 review 而非 delete。"""
+        mf = make_memory_file(
+            content="---\nname: 用户背景\ntype: user\n---\n内容",
+            filename="user_bg.md",
+        )
+        mock_client = make_mock_client([{
+            "filename": "user_bg.md",
+            "importance": 2.0,
+            "recency": 2.0,
+            "credibility": 2.0,
+            "accuracy": 2.0,
+            "composite": 2.0,
+            "action": "delete",
+            "reason": "测试",
+            "is_not_to_save": False,
+        }])
+
+        results = llm_score_batch([mf], client=mock_client)
+        # 综合分 2.0 < 2.5，但 user 类型不直接删除，应为 review
+        assert results[0].scores.composite == pytest.approx(2.0, abs=0.1)
+        assert results[0].action == "review"
 
     def test_批次分割正确(self):
         """7 条记忆用 batch_size=6 应该分成 2 批。"""

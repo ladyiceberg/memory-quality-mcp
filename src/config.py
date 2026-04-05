@@ -58,6 +58,10 @@ model: ""          # 留空使用该 provider 的默认模型
 # base_url: ""     # 仅 custom provider 需要
 # api_key: ""      # 不推荐写在文件里，建议用环境变量
 
+# ── 界面语言 ──────────────────────────────────────────────────────────────────
+
+language: "auto"   # auto（跟随系统语言）/ en（英文）/ zh（中文）
+
 # ── 评分参数（通常不需要修改）─────────────────────────────────────────────────
 
 thresholds:
@@ -91,6 +95,7 @@ ENV_OVERRIDES = {
     "MEMORY_QUALITY_DELETE_THRESHOLD":  ("thresholds.delete", float),
     "MEMORY_QUALITY_REVIEW_THRESHOLD":  ("thresholds.review", float),
     "MEMORY_QUALITY_BATCH_SIZE":        ("batch_size", int),
+    "MEMORY_QUALITY_LANGUAGE":          ("language", str),
 }
 
 
@@ -199,3 +204,35 @@ def get_config_location() -> str:
     if get_dev_config_path().exists():
         return str(get_dev_config_path()) + " (开发模式)"
     return "（使用内置默认值）"
+
+
+def detect_language() -> str:
+    """
+    检测应使用的界面语言。
+
+    优先级：
+      1. config.yaml 中的 language 字段（或环境变量 MEMORY_QUALITY_LANGUAGE）
+      2. 系统 locale（LANG / LC_ALL / LANGUAGE 环境变量）
+      3. 默认英文
+
+    返回：
+      "en" 或 "zh"
+    """
+    config = load_config()
+    lang_setting = config.get("language", "auto").strip().lower()
+
+    # 用户明确指定了语言
+    if lang_setting in ("en", "zh"):
+        return lang_setting
+
+    # auto 模式：读系统 locale
+    if lang_setting == "auto":
+        for env_var in ("LANG", "LC_ALL", "LANGUAGE"):
+            locale_val = os.environ.get(env_var, "")
+            if locale_val.lower().startswith("zh"):
+                return "zh"
+        # locale 不是中文，或未设置 → 英文
+        return "en"
+
+    # 配置值无法识别 → 降级英文
+    return "en"

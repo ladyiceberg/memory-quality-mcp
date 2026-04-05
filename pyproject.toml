@@ -40,6 +40,7 @@ memory-quality-mcp = "src.server:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src"]
+include = ["src/templates/*.html"]
 
 [tool.uv]
 dev-dependencies = [
