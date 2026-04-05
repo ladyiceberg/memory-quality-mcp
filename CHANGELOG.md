@@ -6,6 +6,15 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.2.1] — 2026-04-05
+
+### Fixed
+
+- `age_display()` in session store now respects language setting — English users see "2h ago" instead of Chinese characters
+- README_CN: add dashboard screenshots and language auto-detection note
+
+---
+
 ## [0.2.0] — 2026-04-05
 
 ### Added

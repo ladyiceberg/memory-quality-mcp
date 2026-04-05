@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "memory-quality-mcp"
-version = "0.2.0"
+version = "0.2.1"
 description = "A Claude Code MCP plugin that audits and cleans up your AI memory store"
 readme = "README.md"
 requires-python = ">=3.10"
