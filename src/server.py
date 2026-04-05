@@ -138,6 +138,27 @@ async def list_tools() -> list[Tool]:
                 "required": ["content"],
             },
         ),
+        Tool(
+            name="memory_dashboard",
+            description=(
+                "生成记忆健康报告的可视化页面，用系统默认浏览器打开。"
+                "优先复用上一次 memory_report() 的缓存结果，无需重新调用 LLM。"
+                "如果没有缓存，会先运行一次完整分析再打开页面。"
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "project_path": {
+                        "type": "string",
+                        "description": (
+                            "可选。指定要分析的项目路径（如 /Users/me/my-project）。"
+                            "不传则分析所有项目。"
+                        ),
+                    },
+                },
+                "required": [],
+            },
+        ),
     ]
 
 
@@ -153,6 +174,8 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
         return await _handle_memory_cleanup(arguments)
     elif name == "memory_score":
         return await _handle_memory_score(arguments)
+    elif name == "memory_dashboard":
+        return await _handle_memory_dashboard(arguments)
     else:
         return [TextContent(type="text", text=f"未知工具：{name}")]
 
@@ -584,6 +607,55 @@ async def _handle_memory_cleanup(arguments: dict) -> list[TextContent]:
         output = "\n---\n".join(parts)
 
     return [TextContent(type="text", text=output)]
+
+
+# ── memory_dashboard ──────────────────────────────────────────────────────────
+
+async def _handle_memory_dashboard(arguments: dict) -> list[TextContent]:
+    """
+    生成可视化健康报告，打开浏览器展示。
+    优先读 session_store 缓存，没有缓存时自动触发一次 report。
+    """
+    from src.session_store import load_latest_report
+    from src.dashboard import open_dashboard
+
+    project_path_str = arguments.get("project_path")
+
+    # 尝试读缓存
+    cached = load_latest_report()
+
+    if not cached:
+        # 没有缓存：自动触发一次 report，把结果写入缓存
+        report_result = await _handle_memory_report(arguments)
+        # report 完成后缓存已写入，再次读取
+        cached = load_latest_report()
+
+        if not cached:
+            return [TextContent(type="text", text=(
+                "❌ 未能生成报告缓存。请先运行 `memory_report()` 再打开 Dashboard。"
+            ))]
+
+    # 生成 HTML 并打开浏览器
+    try:
+        html_path = open_dashboard(cached)
+        age_str = cached.age_display()
+        total = len(cached.entries)
+        to_delete = len(cached.to_delete)
+        to_review = len(cached.to_review)
+        to_keep = total - to_delete - to_review
+
+        return [TextContent(type="text", text=(
+            f"✅ Dashboard 已在浏览器中打开\n\n"
+            f"数据来源：{age_str}的分析（{total} 条记忆）\n"
+            f"文件路径：{html_path}\n\n"
+            f"概览：✓ 保留 {to_keep}  ！复查 {to_review}  × 删除 {to_delete}"
+        ))]
+    except Exception as e:
+        return [TextContent(type="text", text=(
+            f"❌ 打开 Dashboard 失败：{e}\n\n"
+            f"请检查系统是否有默认浏览器，或手动打开：\n"
+            f"~/.memory-quality-mcp/dashboard.html"
+        ))]
 
 
 # ── 启动入口 ──────────────────────────────────────────────────────────────────
