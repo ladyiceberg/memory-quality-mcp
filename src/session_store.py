@@ -66,14 +66,19 @@ class StoredReport:
         return time.time() - self.created_at
 
     def age_display(self) -> str:
+        from src.config import detect_language
         secs = self.age_seconds()
-        if secs < 60:
-            return "刚刚"
-        if secs < 3600:
-            return f"{int(secs / 60)} 分钟前"
-        if secs < 86400:
-            return f"{int(secs / 3600)} 小时前"
-        return f"{int(secs / 86400)} 天前"
+        lang = detect_language()
+        if lang == "zh":
+            if secs < 60:    return "刚刚"
+            if secs < 3600:  return f"{int(secs / 60)} 分钟前"
+            if secs < 86400: return f"{int(secs / 3600)} 小时前"
+            return f"{int(secs / 86400)} 天前"
+        else:
+            if secs < 60:    return "just now"
+            if secs < 3600:  return f"{int(secs / 60)}m ago"
+            if secs < 86400: return f"{int(secs / 3600)}h ago"
+            return f"{int(secs / 86400)}d ago"
 
 
 # ── 数据库初始化 ───────────────────────────────────────────────────────────────
