@@ -6,6 +6,10 @@
 
 ---
 
+![Memory Quality MCP Dashboard](assets/dashboard-overview.png)
+
+---
+
 Claude Code v2.1.59+ automatically saves memories from your conversations. Over time, your memory store accumulates:
 
 - **Stale memories** — "working on Project X this week" from months ago
@@ -126,6 +130,8 @@ Opens a local HTML page in your browser:
 - Health score ring (0–100)
 - Summary stats (kept / review / delete)
 - Collapsible memory list — click any item to expand score details
+
+![Dashboard detail view](assets/dashboard-detail.png)
 
 ### 5. Clean up
 
