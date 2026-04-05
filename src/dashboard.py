@@ -197,7 +197,7 @@ def _ring_svg(health: int) -> str:
 
 # ── 主 HTML 生成 ──────────────────────────────────────────────────────────────
 
-def generate_dashboard_html(report: StoredReport) -> str:
+def generate_dashboard_html(report: StoredReport, is_demo: bool = False) -> str:
     """生成完整的 Dashboard HTML 字符串。"""
 
     entries = report.entries
@@ -707,7 +707,12 @@ details[open] .section-chevron {{
 
   <!-- Footer -->
   <div class="footer">
-    由 <a href="https://github.com/ladyiceberg/opportunity-mining/tree/main/memory-quality-mcp">Memory Quality MCP</a> 生成
+    {"🧪 演示模式 · 使用内置示例数据<br>" if is_demo else ""}
+    由 <a href="https://github.com/ladyiceberg/memory-quality-mcp">Memory Quality MCP</a> 生成
+    &nbsp;·&nbsp;
+    <a href="https://github.com/ladyiceberg/memory-quality-mcp/issues/new?template=wrong_score.md&title=Wrong+Score">评分不准确？告诉我</a>
+    &nbsp;·&nbsp;
+    <a href="https://github.com/ladyiceberg/memory-quality-mcp/issues/new?template=bug_report.md">报告问题</a>
   </div>
 
 </div>
@@ -739,7 +744,7 @@ document.addEventListener('DOMContentLoaded', () => {{
 
 # ── 对外接口 ───────────────────────────────────────────────────────────────────
 
-def open_dashboard(report: StoredReport, output_path: Optional[Path] = None) -> Path:
+def open_dashboard(report: StoredReport, output_path: Optional[Path] = None, is_demo: bool = False) -> Path:
     """
     生成 Dashboard HTML 并用系统浏览器打开。
 
@@ -755,7 +760,7 @@ def open_dashboard(report: StoredReport, output_path: Optional[Path] = None) -> 
         output_dir.mkdir(parents=True, exist_ok=True)
         output_path = output_dir / "dashboard.html"
 
-    html = generate_dashboard_html(report)
+    html = generate_dashboard_html(report, is_demo=is_demo)
     output_path.write_text(html, encoding="utf-8")
 
     # 用系统默认浏览器打开

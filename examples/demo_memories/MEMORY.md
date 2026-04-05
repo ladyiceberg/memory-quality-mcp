@@ -1,0 +1,10 @@
+- [User Python expertise and research focus](user_expertise_level.md) — User has 7-8 years Python experience, doing ML research on model interpretability
+- [Explanation approach preference](explanation_approach_preference.md) — User prefers design-level explanations over basic syntax explanations
+- [Writing style feedback - no redundant summaries](writing_style_feedback.md) — User prefers writing without repetitive ending summaries
+- [User communication preference](user_communication_preference.md) — Prefers conclusion-first communication style
+- [User background and expertise](user_background.md) — Data analyst using Pandas for e-commerce retail analysis
+- [Retail chain inventory turnover analysis project](project_retail_inventory_analysis.md) — E-commerce数据分析项目 - 零售客户库存周转率分析
+- [Step 2 memory file reading development progress](step2_memory_reading_development.md) — Step 2 reading module to finish this week, scoring engine next week, challenge is frontmatter edge c
+- [Code commenting preferences](code_commenting_style.md) — User wants detailed line-by-line comments with reasons for non-intuitive logic
+- [Code commenting preference](code_commenting_preference.md) — User prefers minimal comments - only on complex logic
+- [User dietary preferences and restrictions](user_dietary_preferences.md) — User's food preferences for recipe recommendations

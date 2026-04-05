@@ -144,6 +144,7 @@ async def list_tools() -> list[Tool]:
                 "生成记忆健康报告的可视化页面，用系统默认浏览器打开。"
                 "优先复用上一次 memory_report() 的缓存结果，无需重新调用 LLM。"
                 "如果没有缓存，会先运行一次完整分析再打开页面。"
+                "传入 demo=true 可使用内置示例数据，无需真实记忆文件，适合首次体验。"
             ),
             inputSchema={
                 "type": "object",
@@ -154,6 +155,14 @@ async def list_tools() -> list[Tool]:
                             "可选。指定要分析的项目路径（如 /Users/me/my-project）。"
                             "不传则分析所有项目。"
                         ),
+                    },
+                    "demo": {
+                        "type": "boolean",
+                        "description": (
+                            "可选。true = 使用内置示例数据打开演示页面，"
+                            "适合还没有真实记忆文件的用户体验产品功能。"
+                        ),
+                        "default": False,
                     },
                 },
                 "required": [],
@@ -434,6 +443,8 @@ async def _handle_memory_report(arguments: dict) -> list[TextContent]:
         f"---",
         f"▶ 确认清理请调用 `memory_cleanup(dry_run=True)` 预览，再调用 `memory_cleanup(dry_run=False)` 执行",
         f"  （本次报告已缓存，cleanup 无需重新分析）",
+        f"",
+        f"💬 评分不准确？→ https://github.com/ladyiceberg/memory-quality-mcp/issues/new?template=wrong_score.md",
     ]
 
     return [TextContent(type="text", text="\n".join(lines))]
@@ -615,24 +626,92 @@ async def _handle_memory_dashboard(arguments: dict) -> list[TextContent]:
     """
     生成可视化健康报告，打开浏览器展示。
     优先读 session_store 缓存，没有缓存时自动触发一次 report。
+    demo=True 时使用内置示例数据，无需真实记忆文件。
     """
-    from src.session_store import load_latest_report
+    from src.session_store import load_latest_report, save_report, ReportEntry
     from src.dashboard import open_dashboard
 
+    demo = arguments.get("demo", False)
     project_path_str = arguments.get("project_path")
 
-    # 尝试读缓存
+    # ── Demo 模式：加载预生成的示例数据 ───────────────────────────────────────
+    if demo:
+        import time
+        from src.memory_reader import scan_memory_files, read_memory_file
+        from src.quality_engine import run_quality_engine
+        from src.session_store import StoredReport
+
+        demo_dir = Path(__file__).parent.parent / "examples" / "demo_memories"
+        if not demo_dir.exists():
+            return [TextContent(type="text", text=(
+                "❌ 示例数据目录不存在。\n"
+                "请运行：python3 scripts/generate_memories.py --output examples/demo_memories"
+            ))]
+
+        scan = scan_memory_files(demo_dir)
+        memory_files = []
+        for h in scan.headers:
+            try:
+                memory_files.append(read_memory_file(h.file_path, demo_dir))
+            except OSError:
+                pass
+
+        try:
+            engine_result = run_quality_engine(memory_files, run_conflict_detection=True)
+        except ValueError as e:
+            return [TextContent(type="text", text=(
+                f"❌ Demo 模式需要 API Key 运行评分：{e}\n\n"
+                "请设置环境变量后重试，或直接查看示例报告：\n"
+                f"python3 scripts/test_live.py --dir examples/demo_memories"
+            ))]
+
+        # 构造临时 report 对象（不写入 session_store，避免污染用户的真实缓存）
+        entries = []
+        for sm in engine_result.scored_memories:
+            entries.append(ReportEntry(
+                filename=sm.header.filename,
+                file_path=str(sm.header.file_path),
+                action=sm.action,
+                composite=sm.scores.composite,
+                reason=sm.reason,
+                is_not_to_save=sm.is_not_to_save,
+                memory_type=sm.header.memory_type,
+                project_dir=str(demo_dir),
+            ))
+
+        demo_report = StoredReport(
+            report_id=-1,
+            created_at=time.time(),
+            entries=entries,
+        )
+
+        try:
+            html_path = open_dashboard(demo_report, is_demo=True)
+            total = len(entries)
+            to_delete = len([e for e in entries if e.action == "delete"])
+            to_review = len([e for e in entries if e.action == "review"])
+            to_keep = total - to_delete - to_review
+            return [TextContent(type="text", text=(
+                f"✅ Demo Dashboard 已在浏览器中打开\n\n"
+                f"这是使用内置示例数据的演示，共 {total} 条模拟记忆\n"
+                f"概览：✓ 保留 {to_keep}  ！复查 {to_review}  × 删除 {to_delete}\n\n"
+                f"💡 想分析你自己的真实记忆？先运行 `memory_report()` 再打开 Dashboard"
+            ))]
+        except Exception as e:
+            return [TextContent(type="text", text=f"❌ 打开 Demo Dashboard 失败：{e}")]
+
+    # ── 正常模式 ──────────────────────────────────────────────────────────────
     cached = load_latest_report()
 
     if not cached:
-        # 没有缓存：自动触发一次 report，把结果写入缓存
+        # 没有缓存：自动触发一次 report
         report_result = await _handle_memory_report(arguments)
-        # report 完成后缓存已写入，再次读取
         cached = load_latest_report()
 
         if not cached:
             return [TextContent(type="text", text=(
-                "❌ 未能生成报告缓存。请先运行 `memory_report()` 再打开 Dashboard。"
+                "❌ 未能生成报告缓存。请先运行 `memory_report()` 再打开 Dashboard。\n\n"
+                "💡 还没有记忆文件？可以先用演示模式：`memory_dashboard(demo=True)`"
             ))]
 
     # 生成 HTML 并打开浏览器
@@ -648,7 +727,8 @@ async def _handle_memory_dashboard(arguments: dict) -> list[TextContent]:
             f"✅ Dashboard 已在浏览器中打开\n\n"
             f"数据来源：{age_str}的分析（{total} 条记忆）\n"
             f"文件路径：{html_path}\n\n"
-            f"概览：✓ 保留 {to_keep}  ！复查 {to_review}  × 删除 {to_delete}"
+            f"概览：✓ 保留 {to_keep}  ！复查 {to_review}  × 删除 {to_delete}\n\n"
+            f"💬 评分不准确？→ https://github.com/ladyiceberg/memory-quality-mcp/issues/new?template=wrong_score.md"
         ))]
     except Exception as e:
         return [TextContent(type="text", text=(

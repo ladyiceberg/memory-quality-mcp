@@ -1,34 +1,35 @@
 # Memory Quality MCP
 
-给 Claude Code 的记忆层加一个「体检」功能——告诉你现在记了什么、哪些该删、哪些冲突了、哪些记偏了。
+**A Claude Code MCP plugin that audits and cleans up your AI memory.**
 
-## 为什么需要它
-
-Claude Code v2.1.59 起，Auto Memory 默认开启：每次对话结束后 Claude 会自动把值得记住的内容写成 `.md` 文件。
-
-随着时间推移，记忆库里会积累：
-- **过时记忆**：「正在做 X 项目」「这周要完成 Y」——早就不准了
-- **垃圾记忆**：随口一说被当成长期事实，低质量噪音
-- **冲突记忆**：「喜欢简洁代码」和「要求注释详尽」同时存在
-- **记偏的记忆**：AI 把一次临时状态过度解读成了固定偏好
-
-这个插件对记忆库做四维质量评分（重要性 / 时效性 / 可信度 / 准确性），给出可执行的清理建议。
+[中文版](README_CN.md) · [Report a Bug](https://github.com/ladyiceberg/memory-quality-mcp/issues/new?template=bug_report.md) · [Request a Feature](https://github.com/ladyiceberg/memory-quality-mcp/issues/new?template=feature_request.md)
 
 ---
 
-## 前提条件
+Claude Code v2.1.59+ automatically saves memories from your conversations. Over time, your memory store accumulates:
 
-- **Claude Code v2.1.59+**（`claude --version` 确认）
+- **Stale memories** — "working on Project X this week" from months ago
+- **Junk memories** — offhand remarks treated as permanent facts
+- **Conflicting memories** — "prefers detailed comments" and "keep code clean and minimal" coexisting
+- **Misrecorded memories** — AI over-interpreted a one-time comment as a fixed habit
+
+This plugin audits your memory store with a 4-dimension quality score (Importance / Recency / Credibility / Accuracy) and gives you actionable cleanup recommendations — with a visual dashboard.
+
+---
+
+## Requirements
+
+- **Claude Code v2.1.59+** (run `claude --version` to check)
 - **Python 3.10+**
-- **LLM API Key**（OpenAI、Kimi、MiniMax、Anthropic 任选其一）
+- **LLM API Key** — OpenAI, Kimi, MiniMax, or Anthropic (any one will do)
 
 ---
 
-## 安装
+## Installation
 
-### 方式一：uvx（推荐，无需手动安装）
+### Option 1: uvx (recommended — no manual install)
 
-在 Claude Code 的 MCP 配置文件里添加（`~/.claude/settings.json` 或项目下的 `.claude/settings.json`）：
+Add to your Claude Code MCP config (`~/.claude/settings.json` or your project's `.claude/settings.json`):
 
 ```json
 {
@@ -37,27 +38,6 @@ Claude Code v2.1.59 起，Auto Memory 默认开启：每次对话结束后 Claud
       "command": "uvx",
       "args": ["memory-quality-mcp"],
       "env": {
-        "MINIMAX_API_KEY": "your-key-here"
-      }
-    }
-  }
-}
-```
-
-### 方式二：pip 安装
-
-```bash
-pip install memory-quality-mcp
-```
-
-然后在 MCP 配置里：
-
-```json
-{
-  "mcpServers": {
-    "memory-quality": {
-      "command": "memory-quality-mcp",
-      "env": {
         "OPENAI_API_KEY": "your-key-here"
       }
     }
@@ -65,212 +45,220 @@ pip install memory-quality-mcp
 }
 ```
 
+### Option 2: pip
+
+```bash
+pip install memory-quality-mcp
+```
+
+Then in your MCP config:
+
+```json
+{
+  "mcpServers": {
+    "memory-quality": {
+      "command": "memory-quality-mcp",
+      "env": {
+        "MINIMAX_API_KEY": "your-key-here"
+      }
+    }
+  }
+}
+```
+
 ---
 
-## 配置 API Key
+## Configure your LLM
 
-插件支持多个模型提供商，通过环境变量配置 Key（推荐），或写入配置文件。
+Set **one** of these environment variables in the `env` field above:
 
-### 环境变量方式（推荐）
-
-| 提供商 | 环境变量 | 默认模型 |
-|--------|----------|---------|
+| Provider | Env Variable | Default Model |
+|----------|-------------|---------------|
 | OpenAI | `OPENAI_API_KEY` | gpt-4o-mini |
 | Kimi | `KIMI_API_KEY` | moonshot-v1-8k |
 | MiniMax | `MINIMAX_API_KEY` | MiniMax-M2.5 |
 | Anthropic | `ANTHROPIC_API_KEY` | claude-haiku-4-5 |
 
-设置任意一个环境变量，插件会自动检测并使用对应的提供商。在 MCP 配置的 `env` 字段里传入即可（见上方安装示例），不需要设置系统环境变量。
+The plugin auto-detects which provider to use based on whichever key is set.
 
-### 配置文件方式
+For advanced config (custom model, thresholds), edit `~/.memory-quality-mcp/config.yaml` — generated automatically on first run.
 
-首次运行后，插件会在 `~/.memory-quality-mcp/config.yaml` 自动生成配置模板：
+---
 
-```yaml
-provider: "minimax"   # openai / kimi / minimax / anthropic
-model: ""             # 留空使用默认模型
+## Usage
+
+After setup, restart Claude Code and talk to it naturally:
+
+### 1. Try the demo first (no memories needed)
+
+```
+Open the memory dashboard in demo mode
+```
+
+Claude calls `memory_dashboard(demo=True)` → opens a browser page with example data so you can see what the tool does before running it on your real memories.
+
+### 2. Quick health check (no LLM cost)
+
+```
+Check my memory store health
+```
+
+Returns: total memories across all projects, stale count, index usage, estimated LLM calls for a full report.
+
+### 3. Full quality analysis
+
+```
+Run a detailed memory quality analysis
+```
+
+Scores every memory on 4 dimensions, detects conflicts, flags rule violations. Results are cached — cleanup and dashboard reuse them without calling the LLM again.
+
+> Cost estimate: ~8–9 LLM calls for 50 memories (~$0.01 with gpt-4o-mini)
+
+### 4. Open visual dashboard
+
+```
+Open the memory health dashboard
+```
+
+Opens a local HTML page in your browser:
+
+- Health score ring (0–100)
+- Summary stats (kept / review / delete)
+- Collapsible memory list — click any item to expand score details
+
+### 5. Clean up
+
+```
+Clean up the memories marked for deletion
+```
+
+Claude previews with `memory_cleanup(dry_run=True)` first, then executes on confirmation.
+
+**Safety guarantees:**
+- Preview before every deletion
+- Auto-backup to `.trash/<timestamp>/` before deleting
+- Never silent-deletes anything
+
+### 6. Score a single memory (debug)
+
+```
+Score this memory: "User always codes late at night"
+```
+
+### 7. Analyze a specific project
+
+```
+Analyze memories for ~/my-project only
 ```
 
 ---
 
-## 使用方法
+## How scoring works
 
-配置完成后，重启 Claude Code，在对话中直接调用：
+| Dimension | Weight | What it measures |
+|-----------|--------|-----------------|
+| Importance | 40% | How useful is this for future conversations? |
+| Recency | 25% | Is this information still accurate? |
+| Credibility | 15% | Is there a clear source (user stated it explicitly)? |
+| Accuracy | 20% | Did the AI record it faithfully, without over-interpreting? |
 
-### 1. 快速体检（不消耗 API）
+Score > 3.5 → Keep ｜ 2.5–3.5 → Review ｜ < 2.5 → Delete
 
-```
-帮我检查一下记忆库的健康状态
-```
+---
 
-Claude 会调用 `memory_audit()`，返回：
-- 所有项目的记忆总数
-- 可能过时的数量
-- 各项目索引使用率
-- 预估详细分析需要的 API 调用次数
-
-### 2. 详细质量分析
+## Typical workflow
 
 ```
-帮我详细分析一下记忆质量
-```
+You: Check my memory health
 
-Claude 会调用 `memory_report()`，对每条记忆进行四维评分，返回：
-- 🗑 建议删除的条目（附原因）
-- 🔄 建议复查的条目
-- ⚡ 存在语义冲突的记忆对
-- ✅ 质量良好的条目（verbose 模式）
+Claude: [memory_audit()]
+        47 memories across 3 projects
+        - Possibly stale: 8
+        - Project memories past threshold: 3
+        - MEMORY.md usage: 23% (46/200 lines)
+        Estimated ~9 LLM calls for a full report.
 
-> 费用参考：50 条记忆约调用 LLM 8-9 次，使用 gpt-4o-mini 约 $0.01。
+You: Run the full analysis
 
-### 3. 打开可视化健康报告
+Claude: [memory_report()]
+        47 memories | 🗑 delete 8 | 🔄 review 5 | ✅ keep 34
 
-```
-帮我打开记忆健康仪表盘
-```
+        ⚡ 1 conflict found
+        - 🔴 feedback_comments_a.md × feedback_comments_b.md
+          One says "detailed comments", the other says "minimal comments"
 
-Claude 会调用 `memory_dashboard()`，在浏览器里打开一个本地 HTML 页面，包含：
-- 健康分圆环（0–100）+ 整体状态判断
-- 保留 / 复查 / 删除 三项汇总统计
-- 四个统计卡片（综合分、总量、保留率、需处理）
-- 可折叠的记忆清单（点击每条可展开评分详情）
+        🗑 Suggested deletions (8)
+        - project_q1_plan.md [project] · 120 days ago
+          Score 1.5 · project memory past 90-day threshold
 
-**优先复用上一次分析的缓存，无需重复调用 LLM。** 如果没有缓存，会自动先运行一次分析再打开页面。
+        Report cached — cleanup won't need to re-analyze
 
-### 4. 执行清理
+You: Open the dashboard
 
-```
-帮我清理掉建议删除的那些记忆
-```
+Claude: [memory_dashboard()]
+        ✅ Dashboard opened in browser
 
-Claude 会先调用 `memory_cleanup(dry_run=True)` 预览，确认后执行 `memory_cleanup(dry_run=False)`。
+You: Clean those up
 
-**安全机制**：
-- 默认预览模式，不实际删除
-- 删除前自动备份到 `.trash/<timestamp>/` 目录
-- 绝不静默删除，每次都需要明确确认
+Claude: [memory_cleanup(dry_run=True)]
+        🔍 Preview (nothing deleted yet)
+        8 memories will be removed: project_q1_plan.md ...
 
-### 5. 单条评分（调试用）
+You: Confirm
 
-```
-帮我评估这条记忆的质量：「用户喜欢在深夜写代码」
-```
-
-### 6. 只分析指定项目
-
-```
-帮我分析 ~/my-project 这个项目的记忆
+Claude: [memory_cleanup(dry_run=False)]
+        ✅ Cleaned up 8 memories
+        Backup: ~/.claude/.../memory/.trash/20260405_143022/
+        MEMORY.md index updated
 ```
 
 ---
 
-## 四维评分说明
+## FAQ
 
-| 维度 | 权重 | 含义 |
-|------|------|------|
-| 重要性 | 40% | 这条记忆对未来对话有多大帮助 |
-| 时效性 | 25% | 这条信息现在还准确吗 |
-| 可信度 | 15% | 有没有明确的用户陈述作为来源 |
-| 准确性 | 20% | AI 记录时有没有过度解读用户原意 |
+**Q: "No memory files found"**
 
-综合分 > 3.5 → 保留 ｜ 2.5–3.5 → 建议复查 ｜ < 2.5 → 建议删除
-
----
-
-## 典型对话示例
-
-```
-用户：帮我检查一下记忆质量
-
-Claude：[调用 memory_audit()]
-        你目前有 47 条记忆（跨 3 个项目）：
-        - 可能过时：8 条
-        - 建议优先审查（project 类型过时）：3 条
-        - MEMORY.md 使用率：23%（46/200 行）
-
-        预计详细分析需要调用 LLM 约 9 次。
-        ▶ 运行 memory_report() 获取详细评分和清理建议
-
-用户：帮我详细分析一下
-
-Claude：[调用 memory_report()]
-        ## 📊 记忆质量详细报告
-        总计：47 条 | 🗑 删除 8 条 | 🔄 复查 5 条 | ✅ 保留 34 条
-
-        ⚡ 发现 1 对冲突记忆
-        - 🔴 feedback_code_style_a.md × feedback_code_style_b.md
-          一条记「喜欢详细注释」，一条记「注释越少越好」，相互矛盾
-
-        🗑 建议删除（8 条）
-        - project_q1_plan.md [project] · 120 天前
-          综合分：1.5 · project 类型已超过 90 天阈值，很可能已过时
-        ...
-
-        本次报告已缓存，cleanup 无需重新分析
-
-用户：帮我清理掉建议删除的那些
-
-Claude：[调用 memory_cleanup(dry_run=True)]
-        🔍 预览模式（未执行任何删除）
-
-        以下 8 条记忆将被删除：
-          - project_q1_plan.md
-          ...
-
-        ▶ 确认清理请调用 memory_cleanup(dry_run=False)
-
-用户：确认
-
-Claude：[调用 memory_cleanup(dry_run=False)]
-        ✅ 已清理 8 条
-        备份位置：~/.claude/.../memory/.trash/20260404_143022/
-        MEMORY.md 索引已同步更新
-
-用户：帮我看看可视化报告
-
-Claude：[调用 memory_dashboard()]
-        ✅ Dashboard 已在浏览器中打开
-        数据来源：刚刚的分析（39 条记忆）
-        概览：✓ 保留 34  ！复查 3  × 删除 2
-```
-
----
-
-## 常见问题
-
-**Q：提示「未找到记忆文件」**
-
-需要 Claude Code v2.1.59+，且 Auto Memory 已开启。检查：
+Requires Claude Code v2.1.59+. Check:
 ```bash
-claude --version        # 确认版本 >= v2.1.59
-ls ~/.claude/projects/  # 查看是否有项目记忆目录
+claude --version              # must be >= v2.1.59
+ls ~/.claude/projects/        # should list your projects
 ```
 
-如果版本足够新但还没有记忆文件，说明近期对话里 Claude 还没判断有值得记住的内容，属于正常情况，继续正常使用一段时间后会自动生成。
+If the version is new enough but no files exist yet, Claude hasn't decided anything is worth remembering yet. Keep using Claude Code normally — files will appear within a few sessions.
 
-**Q：评分准确吗？**
+Want to see the tool in action first? Run `memory_dashboard(demo=True)`.
 
-评分仅供参考，最终决策权在你。所有删除操作都需要明确确认，且有备份。如果发现评分持续偏差，可以通过 `~/.memory-quality-mcp/config.yaml` 调整阈值。
+**Q: Are the scores accurate?**
 
-**Q：支持哪些 LLM？**
+Scores are suggestions, not commands. You make the final call. Every deletion requires confirmation and is backed up. If you find consistent scoring errors, please [open a Wrong Score issue](https://github.com/ladyiceberg/memory-quality-mcp/issues/new?template=wrong_score.md) — each report directly improves the model.
 
-支持所有 OpenAI 兼容接口的提供商。内置预设：OpenAI、Kimi、MiniMax、Anthropic。也可以通过 `base_url` 配置任意自定义提供商（`MEMORY_QUALITY_BASE_URL` 环境变量）。
+**Q: Which LLMs are supported?**
 
-**Q：会误删重要记忆吗？**
+Any OpenAI-compatible API. Built-in presets: OpenAI, Kimi, MiniMax, Anthropic. Custom providers via `MEMORY_QUALITY_BASE_URL` environment variable.
 
-不会。所有删除操作：① 先预览 ② 需要明确确认 ③ 自动备份到 `.trash` 目录可手动恢复。
+**Q: Will it delete something important?**
 
-**Q：记忆文件在哪里？**
+No. Every operation: ① shows a preview ② requires explicit confirmation ③ auto-backs up to `.trash/` before deleting.
+
+**Q: Where are my memory files?**
 
 ```bash
-ls ~/.claude/projects/          # 列出所有项目
-ls ~/.claude/projects/*/memory/ # 查看各项目记忆文件
+ls ~/.claude/projects/*/memory/
 ```
 
-也可以在 Claude Code 里直接输入 `/memory` 查看和编辑。
+Or type `/memory` inside Claude Code to browse and edit them directly.
 
 ---
 
-## 许可证
+## Contributing
+
+Found a scoring error? [Tell us](https://github.com/ladyiceberg/memory-quality-mcp/issues/new?template=wrong_score.md) — your feedback directly calibrates the model.
+
+Bug or feature idea? [Open an issue](https://github.com/ladyiceberg/memory-quality-mcp/issues).
+
+---
+
+## License
 
 MIT
