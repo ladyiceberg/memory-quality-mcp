@@ -5,14 +5,35 @@ build-backend = "hatchling.build"
 [project]
 name = "memory-quality-mcp"
 version = "0.1.0"
-description = "A Claude MCP plugin that audits and improves the quality of your Claude Code memories"
+description = "A Claude Code MCP plugin that audits and cleans up your AI memory store"
 readme = "README.md"
 requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [
+    {name = "ladyiceberg"},
+]
+keywords = ["mcp", "claude", "claude-code", "memory", "ai", "llm"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
 dependencies = [
     "mcp[cli]>=1.0.0",
     "openai>=1.0.0",
     "pyyaml>=6.0",
 ]
+
+[project.urls]
+Homepage = "https://github.com/ladyiceberg/memory-quality-mcp"
+Repository = "https://github.com/ladyiceberg/memory-quality-mcp"
+Issues = "https://github.com/ladyiceberg/memory-quality-mcp/issues"
 
 [project.scripts]
 memory-quality-mcp = "src.server:main"
