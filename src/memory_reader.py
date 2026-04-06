@@ -580,14 +580,19 @@ def memory_age_days(mtime_ms: int) -> int:
     return max(0, (now_ms - mtime_ms) // 86_400_000)
 
 
-def format_age(mtime_ms: int) -> str:
+def format_age(mtime_ms: int, lang: str | None = None) -> str:
     """返回人类可读的记忆年龄（与 Claude Code memoryAge() 一致）。"""
+    from src.config import detect_language
+    resolved = lang if lang in ("en", "zh") else detect_language()
     days = memory_age_days(mtime_ms)
-    if days == 0:
-        return "今天"
-    if days == 1:
-        return "昨天"
-    return f"{days} 天前"
+    if resolved == "zh":
+        if days == 0: return "今天"
+        if days == 1: return "昨天"
+        return f"{days} 天前"
+    else:
+        if days == 0: return "today"
+        if days == 1: return "yesterday"
+        return f"{days}d ago"
 
 
 def format_memory_manifest(headers: list[MemoryHeader]) -> str:
