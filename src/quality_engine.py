@@ -75,6 +75,7 @@ class EngineResult:
     to_delete: int
     to_review: int
     to_keep: int
+    to_error: int           # LLM 解析失败，无法评分的条目数
     llm_calls: int          # 实际消耗的 LLM API 调用次数
 
 
@@ -386,20 +387,24 @@ def _score_single_batch(
 
 
 def _fallback_scored(header: MemoryHeader) -> ScoredMemory:
-    """LLM 调用失败时的降级处理：标记为 review。"""
+    """LLM 解析失败时如实标记，不伪造评分数据。
+
+    scores 全为 -1 表示无效值，action 为 'error'，
+    调用方（report/cleanup）应跳过 error 条目，不纳入统计。
+    """
     return ScoredMemory(
         header=header,
         scores=DimScores(
-            importance=3.0,
-            recency=3.0,
-            credibility=3.0,
-            accuracy=3.0,
-            composite=3.0,
+            importance=-1.0,
+            recency=-1.0,
+            credibility=-1.0,
+            accuracy=-1.0,
+            composite=-1.0,
         ),
-        action="review",
-        reason="评分失败（LLM 返回异常），建议人工复查。",
+        action="error",
+        reason="LLM 解析失败，无法评分。请重试或手动检查此条记忆。",
         is_not_to_save=False,
-        scored_by="llm_fallback",
+        scored_by="llm_failed",
     )
 
 
@@ -604,6 +609,7 @@ def run_quality_engine(
     to_delete = sum(1 for s in all_scored if s.action == "delete")
     to_review = sum(1 for s in all_scored if s.action == "review")
     to_keep = sum(1 for s in all_scored if s.action == "keep")
+    to_error = sum(1 for s in all_scored if s.action == "error")
 
     return EngineResult(
         scored_memories=all_scored,
@@ -612,5 +618,6 @@ def run_quality_engine(
         to_delete=to_delete,
         to_review=to_review,
         to_keep=to_keep,
+        to_error=to_error,
         llm_calls=llm_calls,
     )

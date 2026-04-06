@@ -139,8 +139,12 @@ STRINGS: dict[str, dict[str, str]] = {
         "zh": "## 📊 记忆质量详细报告",
     },
     "report.summary": {
-        "en": "**Scope**: {scope}　**Total**: {total}  |  🗑 Delete {delete}  |  🔄 Review {review}  |  ✅ Keep {keep}",
-        "zh": "**扫描范围**：{scope}　**总计**：{total} 条  |  🗑 删除 {delete} 条  |  🔄 复查 {review} 条  |  ✅ 保留 {keep} 条",
+        "en": "**Scope**: {scope}　**Total**: {total}  |  🗑 Delete {delete}  |  🔄 Review {review}  |  ✅ Keep {keep}{error_part}",
+        "zh": "**扫描范围**：{scope}　**总计**：{total} 条  |  🗑 删除 {delete} 条  |  🔄 复查 {review} 条  |  ✅ 保留 {keep} 条{error_part}",
+    },
+    "report.summary_error_part": {
+        "en": "  |  ❓ Failed {error}",
+        "zh": "  |  ❓ 失败 {error} 条",
     },
     "report.conflicts_header": {
         "en": "### ⚡ {n} conflicting memory pair(s) found",

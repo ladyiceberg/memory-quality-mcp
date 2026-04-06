@@ -294,9 +294,11 @@ def cmd_report(project_path: str | None, verbose: bool) -> int:
         else t("audit.scope_all", lang=lang, n=multi.project_count)
     )
     _print_header(t("report.header", lang=lang).lstrip("# ").strip())
+    error_part = t("report.summary_error_part", lang=lang, error=result.to_error) if result.to_error > 0 else ""
     print(t("report.summary", lang=lang,
             scope=scope, total=result.total,
-            delete=result.to_delete, review=result.to_review, keep=result.to_keep))
+            delete=result.to_delete, review=result.to_review, keep=result.to_keep,
+            error_part=error_part))
 
     # 冲突
     if result.conflicts:

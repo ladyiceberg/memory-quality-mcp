@@ -331,10 +331,11 @@ async def _handle_memory_report(arguments: dict) -> list[TextContent]:
 
     # ── 构建输出 ─────────────────────────────────────────────────────────────
     scope = t("audit.scope_project", path=project_path_str) if project_path_str else t("audit.scope_all", n=multi.project_count)
+    error_part = t("report.summary_error_part", error=result.to_error) if result.to_error > 0 else ""
     lines = [
         t("report.header"),
         "",
-        t("report.summary", scope=scope, total=result.total, delete=result.to_delete, review=result.to_review, keep=result.to_keep),
+        t("report.summary", scope=scope, total=result.total, delete=result.to_delete, review=result.to_review, keep=result.to_keep, error_part=error_part),
         "",
     ]
 
