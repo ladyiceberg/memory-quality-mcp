@@ -1,3 +1,5 @@
+from __future__ import annotations
+from __future__ import annotations
 """
 quality_engine.py · 记忆质量评分引擎
 

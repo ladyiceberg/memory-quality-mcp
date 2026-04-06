@@ -1,3 +1,4 @@
+from __future__ import annotations
 """
 memory_reader.py · 记忆文件读取层
 

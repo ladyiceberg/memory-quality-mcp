@@ -1,3 +1,4 @@
+from __future__ import annotations
 """
 Memory Quality MCP Server
 给 Claude Code 的记忆层加一个「体检」功能。

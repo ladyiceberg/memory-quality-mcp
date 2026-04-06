@@ -27,6 +27,8 @@ memory_quality.py · Memory Quality CLI — Claude Code Skills 版本
   - 依赖安装路径通过 CLAUDE_PLUGIN_DATA 或 fallback 处理
 """
 
+from __future__ import annotations
+
 import argparse
 import os
 import sys

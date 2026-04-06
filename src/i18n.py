@@ -1,3 +1,4 @@
+from __future__ import annotations
 """
 i18n.py · 多语言文本
 
