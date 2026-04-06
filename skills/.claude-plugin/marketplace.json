@@ -1,0 +1,22 @@
+{
+  "name": "memory-quality-mcp",
+  "owner": {
+    "name": "ladyiceberg",
+    "url": "https://github.com/ladyiceberg"
+  },
+  "metadata": {
+    "description": "Memory Quality — audit and clean up Claude Code's auto-saved memories",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "memory-quality",
+      "description": "Audit and clean up Claude Code auto-saved memory files. Scores memories on 4 dimensions, detects conflicts, and opens a visual dashboard.",
+      "source": "./",
+      "strict": false,
+      "skills": [
+        "./skills/memory-quality"
+      ]
+    }
+  ]
+}

@@ -1,13 +1,13 @@
-# Memory Quality MCP · 发帖文案
+# Memory Quality · Launch Posts
 
 ---
 
 ## Reddit — r/ClaudeAI
 
-**标题：**
-I built a MCP plugin that audits and cleans up Claude Code's auto-saved memories
+**Title:**
+I built a Claude Code Skill that audits and cleans up your auto-saved memories (no MCP setup needed)
 
-**正文：**
+**Body:**
 
 Claude Code v2.1.59+ automatically saves memories from your conversations. That's powerful — but after a few weeks, your memory store starts accumulating garbage:
 
@@ -16,20 +16,29 @@ Claude Code v2.1.59+ automatically saves memories from your conversations. That'
 - **Conflicting memories** — "prefers detailed comments" AND "keep code minimal" both saved
 - **Over-interpreted memories** — AI turned "I stayed up late last night" into "user is a night owl"
 
-So I built **Memory Quality MCP** — a plugin that runs a 4-dimension quality audit (Importance / Recency / Credibility / Accuracy) on your memory store and gives you a visual dashboard with actionable cleanup recommendations.
+So I built **Memory Quality** — a Claude Code Skill that runs a 4-dimension quality audit (Importance / Recency / Credibility / Accuracy) on your memory store and gives you a visual dashboard with actionable cleanup recommendations.
+
+**Why a Skill instead of MCP?**
+No server to run, no config file to edit. Just install the plugin and talk to Claude naturally — "audit my memories", "show me what should be deleted", "open the memory dashboard".
 
 **What it does:**
-- `memory_audit()` — instant health check, no LLM cost
-- `memory_report()` — full scoring with conflict detection (~$0.01 for 50 memories)
-- `memory_cleanup()` — safe cleanup with dry-run preview + auto-backup to `.trash/`
-- `memory_dashboard()` — opens a local HTML dashboard in your browser
+- `audit` — instant health check, no LLM cost, runs in seconds
+- `report` — full 4-dimension scoring + conflict detection (~$0.01 for 50 memories)
+- `cleanup` — safe cleanup with dry-run preview + auto-backup to `.trash/`
+- `dashboard` — opens a local HTML dashboard in your browser
+- `score "text"` — evaluate any single memory snippet on the spot
 
-Try the demo first (no real memory files needed):
+**Install (Claude Code Skill):**
 ```
-Open the memory dashboard in demo mode
-```
+# Step 1: add the marketplace (one-time)
+/plugin marketplace add ladyiceberg/memory-quality-mcp
 
-**Install:**
+# Step 2: install
+/plugin install memory-quality@ladyiceberg-memory-quality-mcp
+```
+Then just say: *"audit my memories"* or *"show me what should be deleted"*
+
+**Also available as MCP** if you prefer that setup:
 ```json
 "memory-quality": {
   "command": "uvx",
@@ -42,29 +51,59 @@ Supports OpenAI, Anthropic, Kimi, MiniMax — any OpenAI-compatible API.
 
 GitHub: https://github.com/ladyiceberg/memory-quality-mcp
 
-Would love feedback, especially if you find the scoring consistently wrong — there's a "Score wrong? Tell us" link right in the dashboard.
+Would love feedback — especially if you find the scoring consistently wrong. There's a "Score wrong? Tell us" link right in the dashboard.
 
 ---
 
-## Claude Discord — #tools 频道
+## Claude Discord — #tools channel
 
-🧠 **Memory Quality MCP** — audit and clean up Claude Code's auto-saved memories
+🧠 **Memory Quality** — audit and clean up Claude Code's auto-saved memories
 
-Claude Code's Auto Memory is great, but over time it collects stale project notes, junk memories, and conflicting preferences. This plugin gives your memory store a health check.
+Claude Code's Auto Memory is great, but over time it collects stale project notes, junk memories, and conflicting preferences.
 
-**4 tools:**
-- `memory_audit()` — quick scan, no LLM cost
-- `memory_report()` — full 4-dimension scoring + conflict detection
-- `memory_cleanup()` — safe cleanup with dry-run + `.trash/` backup
-- `memory_dashboard()` — local visual dashboard (screenshot below 👇)
+**Now available as a Claude Code Skill** — no MCP server, no config. Just install and ask Claude to check your memories.
 
-**Install in 1 line** (uvx, no manual setup):
+**5 commands:**
+- `audit` — quick scan, no LLM cost
+- `report` — full 4-dimension scoring + conflict detection
+- `cleanup` — safe cleanup with dry-run + `.trash/` backup
+- `dashboard` — local visual HTML dashboard (screenshot below 👇)
+- `score "text"` — evaluate any single memory snippet
+
+**Install as Skill (recommended):**
+```
+# Step 1: add the marketplace (one-time)
+/plugin marketplace add ladyiceberg/memory-quality-mcp
+
+# Step 2: install
+/plugin install memory-quality@ladyiceberg-memory-quality-mcp
+```
+Then say: *"audit my memories"* or *"open the memory dashboard"*
+
+**Also works as MCP:**
 ```json
 { "command": "uvx", "args": ["memory-quality-mcp"], "env": { "OPENAI_API_KEY": "..." } }
 ```
 
 Supports OpenAI / Anthropic / Kimi / MiniMax.
-Demo mode works without any real memory files — just say "open the memory dashboard in demo mode".
+
+→ https://github.com/ladyiceberg/memory-quality-mcp
+
+---
+
+## agentskills.io Discord — #show-and-tell
+
+🧠 **memory-quality** — a Claude Code Skill that audits your AI memory store
+
+Built this to solve a real problem: Claude Code's auto-saved memories accumulate junk over time — stale context, over-interpreted remarks, conflicting preferences.
+
+**What it does:**
+- 4-dimension quality scoring (Importance / Recency / Credibility / Accuracy)
+- Conflict detection — finds memories that contradict each other
+- Safe cleanup with dry-run preview + `.trash/` backup
+- Local HTML dashboard
+
+Follows the agentskills.io standard, works with Claude Code and other supporting tools.
 
 → https://github.com/ladyiceberg/memory-quality-mcp
 
@@ -74,3 +113,4 @@ Demo mode works without any real memory files — just say "open the memory dash
 
 - Reddit：图1（整体概览）作为第一张，图3或图4作为第二张
 - Discord：直接贴图1
+- agentskills Discord：贴 dashboard 截图即可
