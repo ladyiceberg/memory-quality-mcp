@@ -6,6 +6,20 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.2.2] — 2026-04-06
+
+### Fixed
+
+- **LLM parse failures are now reported honestly** — Previously, when the LLM returned an unparseable response, the memory was silently assigned a score of 3.0 and marked `review`, polluting accuracy statistics and misleading users. Now failures are marked `action="error"` with `scores=-1`, and the report summary shows a `❓ Failed N` count so users know exactly what happened.
+- **Per-item LLM scoring replaces batch scoring** — Each memory is now scored with an independent LLM call instead of grouping 6 together. This eliminates the ~55% batch parse failure rate: a single malformed response no longer discards an entire batch. Conflict detection is unchanged (still batch, as it requires seeing all memories together).
+- **Python 3.9 compatibility** — Added `from __future__ import annotations` to all `src/` modules. The `str | None` union syntax used in type hints requires Python 3.10+; this fix makes the package work on Python 3.9+ (e.g. macOS system Python).
+
+### Added
+
+- **Claude Code Skills plugin** (`skills/`) — Zero-install alternative to MCP. Users can invoke memory-quality directly via Claude Code's Skills system without running a local server. Includes `SKILL.md`, CLI script, and `references/commands.md`.
+
+---
+
 ## [0.2.1] — 2026-04-05
 
 ### Fixed
