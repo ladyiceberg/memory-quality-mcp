@@ -1,0 +1,26 @@
+{
+  "name": "memory-quality",
+  "version": "0.1.0",
+  "description": "Audit and clean up Claude Code's auto-saved memories. Scores each memory on 4 dimensions, detects conflicts, and opens a visual health dashboard.",
+  "author": {
+    "name": "ladyiceberg"
+  },
+  "homepage": "https://github.com/ladyiceberg/memory-quality-mcp",
+  "repository": "https://github.com/ladyiceberg/memory-quality-mcp",
+  "license": "MIT",
+  "keywords": ["memory", "claude-code", "audit", "cleanup", "quality"],
+  "userConfig": {
+    "api_key": {
+      "description": "LLM API Key — supports OpenAI, Anthropic, Kimi, MiniMax",
+      "sensitive": true
+    },
+    "provider": {
+      "description": "LLM provider: openai / anthropic / minimax / kimi (leave blank to auto-detect from api_key)",
+      "sensitive": false
+    },
+    "language": {
+      "description": "Interface language: en or zh (default: auto-detect from system locale)",
+      "sensitive": false
+    }
+  }
+}
