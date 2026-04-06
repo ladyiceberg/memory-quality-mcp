@@ -259,8 +259,8 @@ async def _handle_memory_audit(arguments: dict) -> list[TextContent]:
         ]
 
     # 预估 LLM 调用次数（帮用户决定是否运行 report）
-    batch_size = CONFIG.get("batch_size", 6)
-    estimated_calls = (total + batch_size - 1) // batch_size + 1  # +1 冲突检测
+    # 每条 memory 独立调用一次，+1 是冲突检测
+    estimated_calls = total + 1
     lines += [t("audit.footer", n=estimated_calls)]
 
     return [TextContent(type="text", text="\n".join(lines))]

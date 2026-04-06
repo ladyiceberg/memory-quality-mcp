@@ -160,7 +160,6 @@ def cmd_audit(project_path: str | None) -> int:
     total = multi.total_count
     all_headers = multi.total_headers
     config = load_config()
-    batch_size = config.get("batch_size", 6)
 
     # 规则统计（不调 LLM）
     stale_count = 0
@@ -226,7 +225,7 @@ def cmd_audit(project_path: str | None) -> int:
                 age=format_age(oldest.mtime_ms),
                 desc=desc))
 
-    estimated_calls = (total + batch_size - 1) // batch_size + 1
+    estimated_calls = total + 1  # 每条一次调用 + 1 次冲突检测
     print()
     print(t("audit.footer", lang=lang, n=estimated_calls))
     return 0

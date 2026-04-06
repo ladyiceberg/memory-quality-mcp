@@ -304,10 +304,10 @@ def llm_score_batch(
     client: Optional[LLMClient] = None,
 ) -> list[ScoredMemory]:
     """
-    批量 LLM 评分。
+    对一批 memory 逐条调用 LLM 评分。
 
-    每批最多 BATCH_SIZE 条（默认 6），发一次 API 请求。
-    50 条记忆 ≈ 8-9 次 API 调用。
+    每条独立调用一次 API，失败只影响当条，不波及其他条。
+    冲突检测仍然在 run_quality_engine 里批量做，不受影响。
     """
     if not memory_files:
         return []
@@ -317,11 +317,42 @@ def llm_score_batch(
 
     all_results: list[ScoredMemory] = []
 
-    # 分批处理
-    for batch_start in range(0, len(memory_files), BATCH_SIZE):
-        batch = memory_files[batch_start: batch_start + BATCH_SIZE]
-        batch_results = _score_single_batch(batch, client)
-        all_results.extend(batch_results)
+    for mf in memory_files:
+        response = client.complete(
+            system=get_single_score_system(detect_language()),
+            user=f"请评分以下记忆内容：\n\n{mf.raw_content}",
+            json_schema=SINGLE_SCORE_SCHEMA,
+            max_tokens=512,
+        )
+
+        parsed = response.parsed
+        if not parsed:
+            all_results.append(_fallback_scored(mf.header))
+            continue
+
+        raw = parsed
+        accuracy = float(raw.get("accuracy", 0))
+        importance = float(raw.get("importance", 3))
+        recency = float(raw.get("recency", 3))
+        credibility = float(raw.get("credibility", 3))
+        composite = _compute_composite(importance, recency, credibility, accuracy)
+        is_not_to_save = bool(raw.get("is_not_to_save", False))
+        action = _action_from_composite(composite, is_not_to_save, mf.header.memory_type)
+
+        all_results.append(ScoredMemory(
+            header=mf.header,
+            scores=DimScores(
+                importance=importance,
+                recency=recency,
+                credibility=credibility,
+                accuracy=accuracy,
+                composite=composite,
+            ),
+            action=action,
+            reason=raw.get("reason", "LLM 评分，无详细原因"),
+            is_not_to_save=is_not_to_save,
+            scored_by="llm",
+        ))
 
     return all_results
 
@@ -574,13 +605,13 @@ def run_quality_engine(
         else:
             needs_llm.append(mf)
 
-    # Step 2：LLM 批量评分
+    # Step 2：LLM 逐条评分
     llm_scored: list[ScoredMemory] = []
     llm_calls = 0
 
     if needs_llm and client:
         llm_scored = llm_score_batch(needs_llm, client)
-        llm_calls = (len(needs_llm) + BATCH_SIZE - 1) // BATCH_SIZE
+        llm_calls = len(needs_llm)  # 每条一次调用
 
     # Step 3：冲突检测（只对非删除的记忆做）
     all_scored = rule_scored + llm_scored
