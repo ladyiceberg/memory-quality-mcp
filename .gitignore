@@ -1,0 +1,22 @@
+# 原始标注数据（体积大，含隐私，不上传）
+benchmark/*.csv
+benchmark/scenarios.json
+
+# 生成的中间产物
+benchmark/filtered_samples.json
+benchmark/sampling_batches/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+
+# 本地配置
+config.yaml
+
+# 生成的 Dashboard 文件
+dashboard.html
+
+# 内部文档（不对外公开）
+METRICS.md
